@@ -1,6 +1,8 @@
+/*globals window, console*/
 define(["jquery", "FixturesService"], function (jQuery, FixturesService) {
 
 var $ = jQuery;
+var _ = window["_"];
 
 
 
@@ -170,8 +172,8 @@ function refreshData(data) {
     // Broadcast the fact that the data has been loaded.
     // Currently only listened to by the test code.
     // jQuery.trigger() is synchronous, so setTimeout adds async notification.
-    setTimeout(function () {
-        $(document).trigger("dataLoaded");
+    window.setTimeout(function () {
+        $(window.document).trigger("dataLoaded");
     }, 1);
 }
 

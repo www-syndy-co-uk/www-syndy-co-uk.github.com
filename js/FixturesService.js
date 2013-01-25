@@ -1,3 +1,4 @@
+/*global window, alert*/
 define(["jquery"], function (jQuery) {
 
 var $ = jQuery;
@@ -48,12 +49,16 @@ function FixturesService(host, port) {
         s += "callback=?";
         var url = host + "/fixtures/slim?" + s;
         return $.getJSON(url).done(function (data) {
+            if (data.error) {
+                alert(data.error.msg);
+                return;
+            }
             data.rounds = getRoundsFromFixtures(data.fixtures);
         }).fail(function (response, status, xhr) {
             if (status !== "error") {
                 return;
             }
-            var arr = [href].concat(Array.prototype.slice.call(arguments));
+            var arr = [url].concat(Array.prototype.slice.call(arguments));
             alert(arr.join("\n"));
         });
     };
