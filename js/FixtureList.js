@@ -121,7 +121,7 @@ function createRoundElement(roundIdx, round, teams, teamIds) {
         }));
         if (prevKickOff == fixture.kickOff) {
             // Remove the first item, which is the kickoff row.
-            elFixture = elFixture.splice(1);
+            elFixture = elFixture.slice(1);
         }
         prevKickOff = fixture.kickOff;
         elFixtures.append(elFixture);
