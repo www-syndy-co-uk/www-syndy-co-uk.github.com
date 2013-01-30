@@ -1,0 +1,11 @@
+#navbar { display: none; }
+
+.login-info button {
+    background: red;
+    color: white;
+    font-family: "Arial Black";
+    font-weight: bold;
+    border: solid 1px black;
+    margin: 0;
+    padding: 2px;
+}
