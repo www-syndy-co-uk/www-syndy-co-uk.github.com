@@ -8,7 +8,8 @@ function LogonService (apiRoot) {
 
 LogonService.prototype.checkLoggedInStatus = function (destUrl) {
     destUrl = destUrl || "/";
-    var url = this.apiRoot + "/authentication/loginInfo?destUrl=" + encodeURIComponent(destUrl);
+    var internalRedirectUrl = "/authentication/redirectToBlog?destUrl=" + destUrl;
+    var url = this.apiRoot + "/authentication/loginInfo?destUrl=" + encodeURIComponent(internalRedirectUrl);
     url += "&callback=?";
     return $.getJSON(url);
 };
