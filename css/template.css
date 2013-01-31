@@ -1,11 +1,10 @@
-#navbar { display: none; }
+#navbar {
+    display: none;
+}
 
 .login-info button {
-    background: red;
+    background: green;
     color: white;
-    font-family: "Arial Black";
+    font-family: Arial;
     font-weight: bold;
-    border: solid 1px black;
-    margin: 0;
-    padding: 2px;
 }
