@@ -30,12 +30,32 @@ define(["jquery"], function (jQuery) {
             return Y.Node.all('li[data-fixtureId="' + fixtureId + '"]').filter('[data-home="' + isHome + '"]').item(0);
         }
 
+        function resetDrags () {
+            for (var fixtureId in dragTable) {
+                this.revokeDrag(fixtureId, true);
+                this.revokeDrag(fixtureId, false);
+                this.initDrag(fixtureId, true);
+                this.initDrag(fixtureId, false);
+            }
+        }
+
         function initDrag (fixtureId, isHome) {
             console.log('DragManager.initDrag', fixtureId, isHome);
             var li = getFixtureLi(fixtureId, isHome);
             console.log(li);
+
+            // create row for this fixture if required
             dragTable[fixtureId] = dragTable[fixtureId] || [];
-            var drag = dragTable[fixtureId][isHome ? 0 : 1] = new Y.DD.Drag({
+
+            var dragRow = dragTable[fixtureId];
+            var drag = dragRow[isHome ? 0 : 1];
+            if (drag) {
+                // already enabled
+                console.log("Drag already enabled for fixtureId=" + fixtureId + ", isHome=" + isHome);
+                return;
+            }
+
+            drag = dragRow[isHome ? 0 : 1] = new Y.DD.Drag({
                 node: li,
                 target: {
                     padding: '0 0 0 20'
@@ -43,6 +63,7 @@ define(["jquery"], function (jQuery) {
             }).plug(Y.Plugin.DDProxy, {
                 moveOnEnd: false
             });
+
             if (constrain) {
                 drag.plug(Y.Plugin.DDConstrained, {
                     constrain: constrain
@@ -52,14 +73,24 @@ define(["jquery"], function (jQuery) {
 
         function revokeDrag (fixtureId, isHome) {
             console.log('DragManager.revokeDrag', fixtureId, isHome);
-            var drag = dragTable[fixtureId][isHome ? 0 : 1];
+            var dragRow = dragTable[fixtureId];
+
+            var drag = dragRow[isHome ? 0 : 1];
             console.log(drag);
-            drag.destroy();
+
+            // cleanup
+            dragRow[isHome ? 0 : 1] = null;
+
+            if (drag) {
+                drag.destroy();
+            }
         }
 
         function revokeNonPicks () {
             console.log('DragManager.revokeAll');
             // only revoke non-picks, i.e. those fixture items left in .rounds
+            // DANGER!
+            // Reliance on ".rounds" here. Should abstract out.
             var rounds = Y.one('.rounds');
             Y.each(rounds.all('li[data-fixtureId]'), function (item, idx) {
                 var fixtureId = item.getAttribute('data-fixtureId');
@@ -71,6 +102,7 @@ define(["jquery"], function (jQuery) {
         this.initDrag = initDrag;
         this.revokeDrag = revokeDrag;
         this.revokeNonPicks = revokeNonPicks;
+        this.resetDrags = resetDrags;
     }
 
 
@@ -224,8 +256,14 @@ define(["jquery"], function (jQuery) {
             var fixtureEl = fixtureEls.eq(isHome ? 0 : 1);
             fixtureEl.append($team);
 
-            // enable the other team of this fixture, now both are pickable again
-            dragManager.initDrag(fixtureId, !isHome);
+            var picks = TipsList.getPicks(tipsContainer);
+            if (picks.length == 0) {
+                // no more tips left, enable all dragging again!
+                dragManager.resetDrags();
+            } else {
+                // enable the other team of this fixture, now both are pickable again
+                dragManager.initDrag(fixtureId, !isHome);
+            }
         }
 
         opts = opts || {};
@@ -399,13 +437,20 @@ define(["jquery"], function (jQuery) {
     /**
      * Returns the picks as an array of {fixtureId, isHome} objects.
      */
-    TipsList.prototype.getPicks = function () {
-        return $.makeArray($(this.tipsContainer).find('.team').map(function () {
+    TipsList.getPicks = function (tipsContainer) {
+        return $.makeArray($(tipsContainer).find('.team').map(function () {
             return {
                 fixtureId: $(this).attr("data-fixtureId"),
                 isHome: "true" === $(this).attr("data-home")
             };
         }));
+    };
+
+    /**
+     * Returns the picks as an array of {fixtureId, isHome} objects.
+     */
+    TipsList.prototype.getPicks = function () {
+        return TipsList.getPicks(this.tipsContainer);
     };
 
     /**
