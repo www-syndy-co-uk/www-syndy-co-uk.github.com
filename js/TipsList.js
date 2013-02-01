@@ -147,25 +147,29 @@ define(["jquery"], function (jQuery) {
 
 
 
-    function TipsList (opts) {
-        function logInfo (evtName, e) {
-            return;
-            var drag = e.drag,
-                drop = e.drop;
-            drag = drag ? e.drag.get('node') : null;
-            drop = drop ? e.drop.get('node') : null;
+    function logInfo (evtName, e) {
+        var drag = e.drag,
+            drop = e.drop;
+        drag = drag ? e.drag.get('node') : null;
+        drop = drop ? e.drop.get('node') : null;
 
-            console.log('evtName', evtName);
-            console.log('e', e);
-            console.log('drag', drag);
-            console.log('drop', drop);
+        console.log('evtName', evtName);
+        console.log('e', e);
+        console.log('drag', drag);
+        console.log('drop', drop);
 
-            if (drag) {
-                var fixtureId = drag.getAttribute('data-fixtureId');
-                var isHome = drag.getAttribute('data-home');
-                console.log('fixtureId', fixtureId, 'isHome', isHome);
-            }
+        if (drag) {
+            var fixtureId = drag.getAttribute('data-fixtureId');
+            var isHome = drag.getAttribute('data-home');
+            console.log('fixtureId', fixtureId, 'isHome', isHome);
         }
+    }
+
+
+
+
+
+    function TipsList (opts) {
 
         function initFixtures () {
             var trs = $(fixturesContainer).find(".teams");
@@ -213,11 +217,15 @@ define(["jquery"], function (jQuery) {
             // otherwise the node is GONE!
             e.removeRemoveTipBtn();
 
+            // get the fixtures ul where we return this tip to
             var fixtureEls = $(fixturesContainer).find("ul").filter(function () {
                 return fixtureId === $(this).attr("data-fixtureId");
             });
             var fixtureEl = fixtureEls.eq(isHome ? 0 : 1);
             fixtureEl.append($team);
+
+            // enable the other team of this fixture, now both are pickable again
+            dragManager.initDrag(fixtureId, !isHome);
         }
 
         opts = opts || {};
@@ -228,26 +236,42 @@ define(["jquery"], function (jQuery) {
             newDrop = null,
             maxPicks = opts.maxPicks || 3,
             parentSelector = opts.parentSelector || "#play",
-            fixturesContainer = opts.fixturesContainer;
+            tipsContainer = this.tipsContainer = opts.tipsContainer,
+            fixturesContainer = this.fixturesContainer = opts.fixturesContainer,
+            tipsDrop = null;
 
         if (!fixturesContainer) {
             throw new Error("fixturesContainer is mandatory option");
+        }
+        if (!tipsContainer) {
+            throw new Error("tipsContainer is mandatory option");
         }
 
         var dragManager = new DragManager(parentSelector);
         initFixtures();
 
-        //Listen for all drop:over events
+        //Create simple targets for the 2 lists.
+        var ul = Y.Node.one(tipsContainer).one('ul');
+        tipsDrop = new Y.DD.Drop({
+            node: ul
+        });
+
+        // Listen for all drop:over events
+        // Why all? Because otherwise we can't reorder the elements as we drag
         Y.DD.DDM.on('drop:over', function(e) {
             //Get a reference to our drag and drop nodes
             var drag = e.drag.get('node'),
                 drop = e.drop.get('node');
 
-            var dropContainer = Y.one('#list2');
-            dropContainer.addClass('dragOver');
+            var dropContainer = Y.one(tipsContainer);
+            var isChildOfDropContainer = dropContainer.contains(drop);
+
+            if (isChildOfDropContainer) {
+                dropContainer.addClass('dragOver');
+            }
 
             //Are we dropping on a li node?
-            if (drop.test('#list2 li')) {
+            if (isChildOfDropContainer && drop.test('li')) {
                 //Are we not going up?
                 if (!goingUp) {
                     drop = drop.get('nextSibling');
@@ -261,8 +285,8 @@ define(["jquery"], function (jQuery) {
             }
         });
 
-        //Listen for all drop:hit events
-        Y.DD.DDM.on('drop:hit', function(e) {
+        // Listen for drop:hit on tipsDrop
+        tipsDrop.on('drop:hit', function(e) {
             //Get a reference to our drag and drop nodes
             var drag = e.drag.get('node'),
                 drop = e.drop.get('node');
@@ -272,15 +296,15 @@ define(["jquery"], function (jQuery) {
             logInfo('drop:hit', e);
         });
 
-        //Listen for all drop:hit events
-        Y.DD.DDM.on('drop:exit', function(e) {
+        // Listen for drop:hit on tipsDrop
+        tipsDrop.on('drop:exit', function(e) {
             //Get a reference to our drag and drop nodes
             var drag = e.drag.get('node'),
                 drop = e.drop.get('node');
 
             logInfo('drop:exit', e);
 
-            var dropContainer = Y.one('#list2');
+            var dropContainer = Y.one(tipsContainer);
             dropContainer.removeClass('dragOver');
         });
 
@@ -329,7 +353,7 @@ define(["jquery"], function (jQuery) {
 
             logInfo('drag:end', e);
 
-            var dropContainer = Y.one('#list2');
+            var dropContainer = Y.one(tipsContainer);
             dropContainer.removeClass('dragOver');
 
             if (newDrop) {
@@ -370,16 +394,19 @@ define(["jquery"], function (jQuery) {
 
             logInfo('drag:drophit', e);
         });
-
-        //Create simple targets for the 2 lists.
-        var uls = Y.Node.all('#list2 ul');
-        console.log(uls.size());
-        uls.each(function(v, k) {
-            var tar = new Y.DD.Drop({
-                node: v
-            });
-        });
     }
+
+    /**
+     * Returns the picks as an array of {fixtureId, isHome} objects.
+     */
+    TipsList.prototype.getPicks = function () {
+        return $.makeArray($(this.tipsContainer).find('.team').map(function () {
+            return {
+                fixtureId: $(this).attr("data-fixtureId"),
+                isHome: "true" === $(this).attr("data-home")
+            };
+        }));
+    };
 
     /**
      * As this module is a horrible mix of jQuery, YUI and RequireJS, we
