@@ -197,7 +197,7 @@ function refreshData(data) {
 FixtureList.getFixtureInfo = function (el) {
     return {
         fixtureId: FixtureList.getFixtureId(el),
-        home: FixtureList.isHome(el)
+        isHome: FixtureList.isHome(el)
     };
 };
 
