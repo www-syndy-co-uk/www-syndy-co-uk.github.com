@@ -206,24 +206,7 @@ define(["jquery"], function (jQuery) {
         function initFixtures () {
             var trs = $(fixturesContainer).find(".teams");
             trs.each(function (i) {
-                var $tr = $(this);
-                var $uls = $tr.find("ul");
-                var ulHome = $uls.eq(0);
-                var ulAway = $uls.eq(1);
-                var liHome = ulHome.find("li");
-                var liAway = ulAway.find("li");
-
                 var fixtureId = "" + i;
-                Y.each([ulHome, ulAway, liHome, liAway], function (item, idx) {
-                    item.attr('data-fixtureId', fixtureId);
-                });
-                Y.each([ulHome, liHome], function (item, idx) {
-                    item.attr('data-home', true);
-                });
-                Y.each([ulAway, liAway], function (item, idx) {
-                    item.attr('data-home', false);
-                });
-
                 dragManager.initDrag(fixtureId, true);
                 dragManager.initDrag(fixtureId, false);
             });

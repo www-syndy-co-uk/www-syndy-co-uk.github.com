@@ -82,6 +82,24 @@ function resolveTeam(team, teams) {
 }
 
 function createRoundElement(roundIdx, round, teams, teamIds) {
+    function setMetaData ($tr, fixtureIdx) {
+        var $uls = $tr.find("ul");
+        var ulHome = $uls.eq(0);
+        var ulAway = $uls.eq(1);
+        var liHome = ulHome.find("li");
+        var liAway = ulAway.find("li");
+
+        $.each([ulHome, ulAway, liHome, liAway], function () {
+            this.attr('data-fixtureId', fixtureIdx);
+        });
+        $.each([ulHome, liHome], function () {
+            this.attr('data-home', true);
+        });
+        $.each([ulAway, liAway], function () {
+            this.attr('data-home', false);
+        });
+    }
+
     if (!round || round.length < 1) {
         return null;
     }
@@ -97,14 +115,14 @@ function createRoundElement(roundIdx, round, teams, teamIds) {
     var strFixture = $fixtureTemplate.html().trim();
     var tmplFixture = _.template(strFixture);
 
-    var elFixtures = elRound.find(".fixtures tbody");
+    var tbody = elRound.find(".fixtures tbody");
     var prevKickOff = null;
     $(round).each(function (fixtureIdx, fixture) {
         var team1 = resolveTeam(fixture.teamId1, teams);
         var team2 = resolveTeam(fixture.teamId2, teams);
         var team1Id = teamIds[team1];
         var team2Id = teamIds[team2];
-        var elFixture = $(tmplFixture({
+        var trFixture = $(tmplFixture({
             kickOff: formatKickOff(fixture.kickOff),
             team1: team1,
             team2: team2,
@@ -121,10 +139,11 @@ function createRoundElement(roundIdx, round, teams, teamIds) {
         }));
         if (prevKickOff == fixture.kickOff) {
             // Remove the first item, which is the kickoff row.
-            elFixture = elFixture.slice(1);
+            trFixture = trFixture.slice(1);
         }
+        setMetaData(trFixture,fixtureIdx);
         prevKickOff = fixture.kickOff;
-        elFixtures.append(elFixture);
+        tbody.append(trFixture);
     });
     return elRound;
 }
