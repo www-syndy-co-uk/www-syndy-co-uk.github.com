@@ -82,21 +82,13 @@ function resolveTeam(team, teams) {
 }
 
 function createRoundElement(roundIdx, round, teams, teamIds) {
+    /**
+     * This function will set the data-fixtureId attribute on the table
+     * row, and any child elements that have a data-fixtureId attribute.
+     */
     function setMetaData ($tr, fixtureIdx) {
-        var $uls = $tr.find("ul");
-        var ulHome = $uls.eq(0);
-        var ulAway = $uls.eq(1);
-        var liHome = ulHome.find("li");
-        var liAway = ulAway.find("li");
-
-        $.each([ulHome, ulAway, liHome, liAway], function () {
-            this.attr('data-fixtureId', fixtureIdx);
-        });
-        $.each([ulHome, liHome], function () {
-            this.attr('data-home', true);
-        });
-        $.each([ulAway, liAway], function () {
-            this.attr('data-home', false);
+        $tr.find("[data-fixtureId]").add($tr).each(function () {
+            $(this).attr('data-fixtureId', fixtureIdx);
         });
     }
 

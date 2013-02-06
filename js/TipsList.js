@@ -232,12 +232,12 @@ define(["jquery"], function (jQuery) {
             // otherwise the node is GONE!
             e.removeRemoveTipBtn();
 
-            // get the fixtures ul where we return this tip to
-            var fixtureEls = $(fixturesContainer).find("ul").filter(function () {
+            // get the fixtures tr where we return this tip to
+            var fixtureTr = $(fixturesContainer).find("tr").filter(function () {
                 return fixtureId === $(this).attr("data-fixtureId");
             });
-            var fixtureEl = fixtureEls.eq(isHome ? 0 : 1);
-            fixtureEl.append($team);
+            var fixtureUl = fixtureTr.find("ul").eq(isHome ? 0 : 1);
+            fixtureUl.append($team);
 
             var picks = TipsList.getPicks(tipsContainer);
             if (picks.length == 0) {
@@ -380,7 +380,7 @@ define(["jquery"], function (jQuery) {
             if (newDrop) {
                 new RemoveTipBtn({
                     team: drag.getDOMNode(),
-                    eventDelegateContainer: "#play",
+                    eventDelegateContainer: parentSelector,
                     removeTipClickHandler: removeTipClickHandler
                 });
             }
