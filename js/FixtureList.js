@@ -194,6 +194,24 @@ function refreshData(data) {
 
 
 
+FixtureList.getFixtureInfo = function (el) {
+    return {
+        fixtureId: FixtureList.getFixtureId(el),
+        home: FixtureList.isHome(el)
+    };
+};
+
+FixtureList.getFixtureId = function (el) {
+    return parseInt($(el).attr("data-fixtureId"), 10);
+};
+
+FixtureList.isHome = function (el) {
+    return "true" === $(el).attr("data-home");
+};
+
+
+
+
 
 return FixtureList;
 
