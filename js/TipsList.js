@@ -1,3 +1,4 @@
+/*global YUI*/
 define(["jquery"], function (jQuery) {
     // Bit of a bastard module.
     // Uses jQuery Deferred to let the client wait for YUI to load, before
@@ -240,7 +241,7 @@ define(["jquery"], function (jQuery) {
             fixtureUl.append($team);
 
             var picks = TipsList.getPicks(tipsContainer);
-            if (picks.length == 0) {
+            if (picks.length === 0) {
                 // no more tips left, enable all dragging again!
                 dragManager.resetDrags();
             } else {

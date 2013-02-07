@@ -1,5 +1,5 @@
 /*globals window, console*/
-define(["jquery", "FixturesService"], function (jQuery, FixturesService) {
+define(["jquery"], function (jQuery) {
 
 var $ = jQuery;
 var _ = window["_"];
