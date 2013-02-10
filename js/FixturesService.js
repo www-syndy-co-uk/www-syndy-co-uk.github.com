@@ -49,11 +49,9 @@ function FixturesService(host, port) {
         s += "callback=?";
         var url = host + "/fixtures/slim?" + s;
         return $.getJSON(url).done(function (data) {
-            if (data.error) {
-                alert(data.error.msg);
-                return;
+            if (!data.errors || data.errors.length < 1) {
+                data.rounds = getRoundsFromFixtures(data.fixtures);
             }
-            data.rounds = getRoundsFromFixtures(data.fixtures);
         }).fail(function (response, status, xhr) {
             if (status !== "error") {
                 return;

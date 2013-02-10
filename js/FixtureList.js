@@ -130,6 +130,7 @@ function createTeamIds(fixtures, teams) {
 
  
 function refreshData(data) {
+    console.log("refreshData", data);
     $rounds.html("");
 
     var fixtures = data.fixtures;
