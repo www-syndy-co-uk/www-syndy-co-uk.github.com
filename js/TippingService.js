@@ -46,7 +46,7 @@ define(["jquery", "TipsModel"], function(jQuery, TipsModel) {
 
     TippingService.createTips = function(tip) {
         var result = [];
-        if (!tip) {
+        if (!tip || !tip.tips) {
             return result;
         }
         var tipper = tip.tipper;
