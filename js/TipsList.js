@@ -1,11 +1,10 @@
 /*global YUI*/
-define(["jquery"], function (jQuery) {
+define(["jquery", "UseYUI!node,dd"], function (jQuery, Y) {
     // Bit of a bastard module.
     // Uses jQuery Deferred to let the client wait for YUI to load, before
     // carrying on with TipList drag and drop support.
 
     var $ = jQuery;
-    var Y = null;
 
 
 
@@ -437,22 +436,6 @@ define(["jquery"], function (jQuery) {
         return TipsList.getPicks(this.tipsContainer);
     };
 
-    /**
-     * As this module is a horrible mix of jQuery, YUI and RequireJS, we
-     * require some jumping through hoops to ensure everything is loaded.
-     * Use $.Deferred so the client can wait for everything to be ready.
-     */
-    function waitForLoaded () {
-        var dfd = $.Deferred();
-        YUI().use('dd-constrain', 'dd-proxy', 'dd-drop', 'dd-delegate', function (_Y) {
-            Y = _Y;
-            dfd.resolve(TipsList);
-        });
-        return dfd;
-    }
-
-    return {
-        waitForLoaded: waitForLoaded
-    };
+    return TipsList;
 
 });
