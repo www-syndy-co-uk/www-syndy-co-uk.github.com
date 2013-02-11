@@ -19,7 +19,7 @@ var teamIcons = new TeamIcons();
 
 
 
-function FixtureList (opts) {
+function FixtureListView (opts) {
 
 opts = opts || {};
 var $rounds = opts.$rounds;
@@ -159,18 +159,18 @@ function refreshData(data) {
 
 
 
-FixtureList.getFixtureInfo = function (el) {
+FixtureListView.getFixtureInfo = function (el) {
     return {
-        fixtureId: FixtureList.getFixtureId(el),
-        isHome: FixtureList.isHome(el)
+        fixtureId: FixtureListView.getFixtureId(el),
+        isHome: FixtureListView.isHome(el)
     };
 };
 
-FixtureList.getFixtureId = function (el) {
+FixtureListView.getFixtureId = function (el) {
     return parseInt($(el).attr("data-fixtureId"), 10);
 };
 
-FixtureList.isHome = function (el) {
+FixtureListView.isHome = function (el) {
     return "true" === $(el).attr("data-home");
 };
 
@@ -178,6 +178,6 @@ FixtureList.isHome = function (el) {
 
 
 
-return FixtureList;
+return FixtureListView;
 
 });

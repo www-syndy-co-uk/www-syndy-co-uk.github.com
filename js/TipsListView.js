@@ -201,7 +201,7 @@ define(["jquery", "UseYUI!node,dd"], function (jQuery, Y) {
 
 
 
-    function TipsList (opts) {
+    function TipsListView (opts) {
 
         function initFixtures () {
             var trs = $(fixturesContainer).find(".teams");
@@ -239,7 +239,7 @@ define(["jquery", "UseYUI!node,dd"], function (jQuery, Y) {
             var fixtureUl = fixtureTr.find("ul").eq(isHome ? 0 : 1);
             fixtureUl.append($team);
 
-            var picks = TipsList.getPicks(tipsContainer);
+            var picks = TipsListView.getPicks(tipsContainer);
             if (picks.length === 0) {
                 // no more tips left, enable all dragging again!
                 dragManager.resetDrags();
@@ -420,7 +420,7 @@ define(["jquery", "UseYUI!node,dd"], function (jQuery, Y) {
     /**
      * Returns the picks as an array of {fixtureId, isHome} objects.
      */
-    TipsList.getPicks = function (tipsContainer) {
+    TipsListView.getPicks = function (tipsContainer) {
         return $.makeArray($(tipsContainer).find('.team').map(function () {
             return {
                 fixtureId: $(this).attr("data-fixtureId"),
@@ -432,10 +432,10 @@ define(["jquery", "UseYUI!node,dd"], function (jQuery, Y) {
     /**
      * Returns the picks as an array of {fixtureId, isHome} objects.
      */
-    TipsList.prototype.getPicks = function () {
-        return TipsList.getPicks(this.tipsContainer);
+    TipsListView.prototype.getPicks = function () {
+        return TipsListView.getPicks(this.tipsContainer);
     };
 
-    return TipsList;
+    return TipsListView;
 
 });

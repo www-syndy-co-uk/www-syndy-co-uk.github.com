@@ -12,7 +12,7 @@ function pointInsideElement (x, y, el) {
     return (dx >= 0 && dx < size.width && dy >= 0 && dy < size.height);
 }
 
-function RankingList(sortable, padding, itemsSelector, itemIdentityFunction) {
+function RankingListView(sortable, padding, itemsSelector, itemIdentityFunction) {
 
     $( sortable ).sortable({
         items: itemsSelector,
@@ -106,6 +106,6 @@ function RankingList(sortable, padding, itemsSelector, itemIdentityFunction) {
     });
 }
 
-return RankingList;
+return RankingListView;
 
 });
