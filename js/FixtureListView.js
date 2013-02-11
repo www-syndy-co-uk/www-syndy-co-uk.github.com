@@ -1,8 +1,7 @@
 /*globals window, console*/
-define(["jquery", "TeamIcons"], function (jQuery, TeamIcons) {
+define(["jquery", "_", "TeamIcons"], function (jQuery, _, TeamIcons) {
 
 var $ = jQuery;
-var _ = window["_"];
 
 
 
