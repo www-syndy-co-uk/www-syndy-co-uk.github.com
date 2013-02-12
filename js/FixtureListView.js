@@ -132,13 +132,6 @@ define(["jquery", "_", "TeamIcons"], function($, _, TeamIcons) {
                     $rounds.append(elRound);
                 }
             });
-
-            // Broadcast the fact that the data has been loaded.
-            // Currently only listened to by the test code.
-            // jQuery.trigger() is synchronous, so setTimeout adds async notification.
-            window.setTimeout(function() {
-                $(window.document).trigger("dataLoaded");
-            }, 1);
         }
 
         this.refreshData = refreshData;
