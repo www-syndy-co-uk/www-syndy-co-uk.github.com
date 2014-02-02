@@ -10,17 +10,27 @@ function exposeImportHelpers() {
     };
 }
 
+function min(minStr, isMin) {
+    if ("undefined" === typeof isMin) {
+        isMin = !syndy.debug;
+    } else {
+        isMin = !!isMin;
+    }
+    minStr = minStr || ".min";
+    return (!isMin ? "" : minStr);
+}
+
 function makeRequireConfig() {
     return {
         baseUrl: syndy.staticRoot + "/js",
         YUI: {
-            src: "http://yui.yahooapis.com/3.8.1/build/yui/yui" + (syndy.debug ? "" : "-min") + ".js"
+            src: "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js"
         },
         paths: {
             // 1.11.0 because 2.x does not support IE8
-            "jquery": "//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.0/jquery" + (syndy.debug ? "" : ".min"),
-            "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore" + (syndy.debug ? "" : "-min"),
-            "backbone": syndy.staticRoot + "/js/backbone/0.9.10/backbone" + (syndy.debug ? "" : "-min")
+            "jquery": "//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.0/jquery" + min(),
+            "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
+            "backbone": syndy.staticRoot + "/js/backbone/1.1.0/backbone" + min("-min")
         },
         shim: {
             underscore: {
@@ -36,7 +46,7 @@ function makeRequireConfig() {
 
 function importScriptAndCss() {
     try {
-        writelnScript("//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + (syndy.debug ? "" : ".min") + ".js");
+        writelnScript("//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min() + ".js");
         writelnScript(syndy.staticRoot + "/js/CookieManager.js");
         // site css
         writelnCSS(syndy.staticRoot + "/css/template.css");
@@ -87,16 +97,16 @@ function fakeConsole(isDebug) {
 }
 
 function fakeJSON() {
-    if (!window["JSON"]) writelnScript("//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js");
+    if (!window["JSON"]) writelnScript("//cdnjs.cloudflare.com/ajax/libs/json2/20130526/json2" + min() + ".js");
 }
 
 function fakeStringTrim() {
     // Need to use our own non-AMD es5-shim.js when importing this way.
-    if (!String.hasOwnProperty("trim")) writelnScript(syndy.staticRoot + "/js/es5-shim.js");
+    if (!String.prototype.hasOwnProperty("trim")) writelnScript(syndy.staticRoot + "/js/es5-shim.js");
 }
 
 function fakeStringEndsWith() {
-    if (!String.hasOwnProperty("endsWith")) {
+    if (!String.prototype.hasOwnProperty("endsWith")) {
         String.prototype.endsWith = function(suffix) {
             return this.indexOf(suffix, this.length - suffix.length) !== -1;
         };
