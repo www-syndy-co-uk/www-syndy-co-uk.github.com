@@ -29,10 +29,10 @@ function loadMatches (matchFilter) {
 
         // Got all the data
         // Only call when dom:ready
-        $(function () {
+        //$(function () {
             $(".loading").hide();
             $(".filter").show();
-        });
+        //});
     }
 
     function onLoadMatchDone (data) {
@@ -44,13 +44,13 @@ function loadMatches (matchFilter) {
 
         // Got some of the data
         // Only call when dom:ready
-        $(function () {
+        //$(function () {
             var match = data;
             var elMatch = createMatchElement(match);
             if (elMatch) {
                 $matches.append(elMatch);
             }
-        });
+        //});
     }
 
     oddsService.loadMatchSummaries().done(function(data, textStatus, jqXHR) {
