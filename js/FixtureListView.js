@@ -1,5 +1,5 @@
 /*globals window, console*/
-define(["jquery", "_", "TeamIcons"], function($, _, TeamIcons) {
+define(["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbone, TeamIcons) {
 
     var teamIcons = new TeamIcons();
 
@@ -14,128 +14,97 @@ define(["jquery", "_", "TeamIcons"], function($, _, TeamIcons) {
         return s;
     }
 
-    function resolveTeam(team, teams) {
-        if (!teams) {
-            return team;
-        }
-        return teams[team];
-    }
-
     function defaultIconRetriever(teamIcons, teamName) {
         return teamIcons.getIconUrl(teamName);
     }
 
-    function FixtureListView(opts) {
-
-        opts = opts || {};
-        var $rounds = opts.$rounds;
-        var $roundTemplate = opts.$roundTemplate;
-        var $fixtureTemplate = opts.$fixtureTemplate;
-        var iconRetriever = opts.iconRetriever || defaultIconRetriever.bind(teamIcons);
-
-        function createRoundElement(roundIdx, round, teams, teamIds) {
-            /**
-             * This function will set the data-fixtureId attribute on the table
-             * row, and any child elements that have a data-fixtureId attribute.
-             */
-            function setMetaData($tr, fixtureIdx) {
-                $tr.find("[data-fixtureId]").add($tr).each(function() {
-                    $(this).attr('data-fixtureId', fixtureIdx);
-                });
-            }
-
-            if (!round || round.length < 1) {
-                return null;
-            }
-
-            var strRound = $roundTemplate.html().trim();
-            var tmplRound = _.template(strRound);
-            var elRound = $(tmplRound({
-                round: {
-                    name: "" + (roundIdx + 1)
-                }
-            }));
-
-            var strFixture = $fixtureTemplate.html().trim();
-            var tmplFixture = _.template(strFixture);
-
-            var tbody = elRound.find(".fixtures tbody");
-            var prevKickOff = null;
-            $(round).each(function(fixtureIdx, fixture) {
-                var team1 = resolveTeam(fixture.teamId1, teams);
-                var team2 = resolveTeam(fixture.teamId2, teams);
-                var team1Id = teamIds[team1];
-                var team2Id = teamIds[team2];
-                var trFixture = $(tmplFixture({
-                    kickOff: formatKickOff(fixture.kickOff),
-                    team1: team1,
-                    team2: team2,
-                    team1Id: team1Id,
-                    team2Id: team2Id,
-                    src1: iconRetriever(team1),
-                    src2: iconRetriever(team2),
-                    score1: (fixture.score1 > -1) ? fixture.score1 : "",
-                    score2: (fixture.score1 > -1) ? fixture.score2 : "",
-                    htScore1: (fixture.score1 > -1) ? "(" + fixture.htScore1 + ")" : "",
-                    htScore2: (fixture.score1 > -1) ? "(" + fixture.htScore2 + ")" : "",
-                    score1class: (fixture.score1 >= fixture.score2) ? "won" : "",
-                    score2class: (fixture.score2 >= fixture.score1) ? "won" : ""
-                }));
-                if (prevKickOff == fixture.kickOff) {
-                    // Remove the first item, which is the kickoff row.
-                    trFixture = trFixture.slice(1);
-                }
-                setMetaData(trFixture, fixtureIdx);
-                prevKickOff = fixture.kickOff;
-                tbody.append(trFixture);
-            });
-            return elRound;
-        }
-
+    function createRoundElement(roundTpl, fixtureTpl, iconRetriever, roundIdx, round, teams) {
         /**
-         * Create a map of [team name/string] -> [team id/int].
+         * This function will set the data-fixtureIdx attribute on the table
+         * row, and any child elements that have a data-fixtureIdx attribute.
          */
-        function createTeamIds(fixtures, teams) {
-            // Keep a team id Map for adding id attrs to team elements
-            var teamIds = {};
-            var teamIdCount = 0;
-            $(fixtures).each(function(fixtureIdx, fixture) {
-                var team1 = resolveTeam(fixture.teamId1, teams);
-                var team2 = resolveTeam(fixture.teamId2, teams);
-                // ids are used for clicks
-                var teamId1 = teamIds[team1];
-                if ("undefined" === typeof teamId1) {
-                    teamId1 = teamIds[team1] = teamIdCount++;
-                }
-                var teamId2 = teamIds[team2];
-                if ("undefined" === typeof teamId2) {
-                    teamId2 = teamIds[team2] = teamIdCount++;
-                }
+        function setMetaData($tr, fixtureIdx) {
+            $tr.find("[data-fixtureIdx]").add($tr).each(function() {
+                $(this).attr('data-fixtureIdx', fixtureIdx);
             });
-            console.log(teamIds);
-            return teamIds;
         }
 
+        if (!round || round.length < 1) {
+            return null;
+        }
 
-        function refreshData(data) {
-            console.log("refreshData", data);
-            $rounds.html("");
+        var elRound = $(roundTpl({
+            round: {
+                name: "" + (roundIdx + 1)
+            }
+        }));
+
+        var tbody = elRound.find(".fixtures tbody");
+        var prevKickOff = null;
+        $(round).each(function(fixtureIdx, fixture) {
+            var team1 = fixture.team1;
+            var team2 = fixture.team2;
+            var team1Id = team1;
+            var team2Id = team2;
+            var trFixture = $(fixtureTpl({
+                kickOff: formatKickOff(fixture.kickOff),
+                team1: team1,
+                team2: team2,
+                team1Id: team1Id,
+                team2Id: team2Id,
+                src1: iconRetriever(team1),
+                src2: iconRetriever(team2),
+                score1: (fixture.score1 > -1) ? fixture.score1 : "",
+                score2: (fixture.score1 > -1) ? fixture.score2 : "",
+                htScore1: (fixture.score1 > -1) ? "(" + fixture.htScore1 + ")" : "",
+                htScore2: (fixture.score1 > -1) ? "(" + fixture.htScore2 + ")" : "",
+                score1class: (fixture.score1 >= fixture.score2) ? "won" : "",
+                score2class: (fixture.score2 >= fixture.score1) ? "won" : ""
+            }));
+            if (prevKickOff == fixture.kickOff) {
+                // Remove the first item, which is the kickoff row.
+                trFixture = trFixture.slice(1);
+            }
+            setMetaData(trFixture, fixtureIdx);
+            prevKickOff = fixture.kickOff;
+            tbody.append(trFixture);
+        });
+        return elRound;
+    }
+
+    var FixtureListView = Backbone.View.extend({
+
+        initialize: function(opts) {
+            this.options = opts;
+            opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
+            // Cache the template function for a single item.
+            this.roundTpl = _.template(opts.$roundTemplate.html());
+            this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
+            this.listenTo(this.model, "change", this.render);
+        },
+
+        // Re-render the titles of the todo item.
+        render: function() {
+            var opts = this.options;
+            var data = this.model.attributes;
 
             var fixtures = data.fixtures;
             var rounds = data.rounds;
             var teams = data.teams;
 
-            var teamIds = createTeamIds(fixtures, teams);
-            $(rounds).each(function(roundIdx, round) {
-                var elRound = createRoundElement(roundIdx, round, teams, teamIds);
+            this.$el.html("");
+            _.each(rounds, function(round, idx) {
+                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.iconRetriever, idx, round, teams);
                 if (elRound) {
-                    $rounds.append(elRound);
+                    this.$el.append(elRound);
                 }
-            });
+            }, this);
+
+            return this;
         }
 
-        this.refreshData = refreshData;
-    }
+    });
+
 
     // ----------
     // 'statics'
@@ -143,13 +112,13 @@ define(["jquery", "_", "TeamIcons"], function($, _, TeamIcons) {
 
     FixtureListView.getFixtureInfo = function(el) {
         return {
-            fixtureId: FixtureListView.getFixtureId(el),
+            fixtureIdx: FixtureListView.getFixtureIdx(el),
             isHome: FixtureListView.isHome(el)
         };
     };
 
-    FixtureListView.getFixtureId = function(el) {
-        return parseInt($(el).attr("data-fixtureId"), 10);
+    FixtureListView.getFixtureIdx = function(el) {
+        return parseInt($(el).attr("data-fixtureIdx"), 10);
     };
 
     FixtureListView.isHome = function(el) {

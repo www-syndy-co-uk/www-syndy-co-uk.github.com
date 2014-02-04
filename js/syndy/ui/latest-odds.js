@@ -23,7 +23,7 @@ function loadMatches (matchFilter) {
     var matchesToLoad = 0;
     var matchesLoaded = 0;
 
-    function onAllLoadMatchesDone (numMatches) {
+    function onAllLoadMatchesDone(numMatches) {
         var loadEnd = new Date().getTime() - loadStart;
         $(".loadTime").text("Loaded " + numMatches + " markets in " + loadEnd + "ms");
 
@@ -33,9 +33,11 @@ function loadMatches (matchFilter) {
             $(".loading").hide();
             $(".filter").show();
         //});
+
+        dfd.resolve(result);
     }
 
-    function onLoadMatchDone (data) {
+    function onLoadMatchDone(data) {
         var done = (++matchesLoaded === matchesToLoad);
 
         if (done) {
@@ -53,8 +55,12 @@ function loadMatches (matchFilter) {
         //});
     }
 
+    var dfd = $.Deferred();
+    var result = {};
+
     oddsService.loadMatchSummaries().done(function(data, textStatus, jqXHR) {
         matchesToLoad = 0;
+        result.matchSummaries = data;
 
         if (data.length < 1) {
             // No summaries
@@ -66,16 +72,18 @@ function loadMatches (matchFilter) {
             var matchSummary = data[i];
             var include = matchFilter(matchSummary);
             if (include) {
-                (function (div) {
+                (function(i, div) {
                     // closure to capture new div
                     div.html(matchSummary.team1 + " v " + matchSummary.team2);
                     $matches.append(div);
                     matchesToLoad++;
                     oddsService.loadMatch(matchSummary.id).done(function (data) {
+                        result.matches = (result.matches || []);
+                        result.matches[i] = data;
                         div.remove();
                         onLoadMatchDone.call(this, data);
                     });
-                }($("<div/>")));
+                }(i, $("<div/>")));
             }
         }
         if (0 == matchesToLoad) {
@@ -86,6 +94,8 @@ function loadMatches (matchFilter) {
         alert(textStatus);
         console.log(jqXHR, textStatus, errorThrown);
     });
+
+    return dfd.promise();
 }
 
 // Start the load as soon as possible
@@ -107,7 +117,6 @@ function findFilter () {
     return function () { return true; };
 }
 
-loadMatches(findFilter());
 
 
 
@@ -203,7 +212,7 @@ function createMatchElement(match) {
 
 
 
-$(function () {
+function init() {
     function oddsStrToFloat (s) {
         var idx = s.indexOf("/");
         if (idx < 0) {
@@ -279,8 +288,12 @@ $(function () {
         });
         trParent.append(trs);
     });
-});
+}
 
-
+return {
+    loadMatches: loadMatches,
+    findFilter: findFilter,
+    init: init
+};
 
 });

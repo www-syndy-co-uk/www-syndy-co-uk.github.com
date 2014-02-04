@@ -13,8 +13,6 @@ function exposeImportHelpers() {
 function min(minStr, isMin) {
     if ("undefined" === typeof isMin) {
         isMin = !syndy.debug;
-    } else {
-        isMin = !!isMin;
     }
     minStr = minStr || ".min";
     return (!isMin ? "" : minStr);
@@ -28,9 +26,9 @@ function makeRequireConfig() {
         },
         paths: {
             // 1.11.0 because 2.x does not support IE8
-            "jquery": "//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.0/jquery" + min(),
+            "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
             "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
-            "backbone": syndy.staticRoot + "/js/backbone/1.1.0/backbone" + min("-min")
+            "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min")
         },
         shim: {
             underscore: {
