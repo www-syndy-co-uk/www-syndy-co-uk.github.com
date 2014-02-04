@@ -31,7 +31,7 @@ define(function () {
     "Leeds Rhinos",
     "London Broncos",
     "St. Helens",
-    "Salford City Reds",
+    "Salford Red Devils",
     "Wakefield Wildcats",
     "Warrington Wolves",
     "Widnes Vikings",
@@ -50,7 +50,7 @@ define(function () {
     logos["Hull"] = logos["Hull FC"];
     logos["Hull K R"] = logos["Hull Kingston Rovers"];
     logos["Leeds"] = logos["Leeds Rhinos"];
-    logos["Salford"] = logos["Salford City Reds"];
+    logos["Salford"] = logos["Salford Red Devils"];
     logos["St Helens"] = logos["St. Helens"];
     logos["Wakefield"] = logos["Wakefield Wildcats"];
     logos["Warrington"] = logos["Warrington Wolves"];
