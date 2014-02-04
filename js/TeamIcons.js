@@ -1,23 +1,27 @@
-define(function() {
+define(["underscore"], function(_) {
 
     function TeamIcons() {
         var icons = {};
         var iconPrefix = "http://upload.wikimedia.org/wikipedia/commons/thumb";
-        icons["Bradford Bulls"] = iconPrefix + "/e/eb/Bullscolours.svg/16px-Bullscolours.svg.png";
-        icons["Castleford Tigers"] = iconPrefix + "/f/fd/Castleford_colours.svg/16px-Castleford_colours.svg.png";
-        icons["Catalan Dragons"] = iconPrefix + "/0/0c/Catalanscolours.svg/16px-Catalanscolours.svg.png";
-        icons["Huddersfield Giants"] = iconPrefix + "/7/73/Giantscolours.svg/16px-Giantscolours.svg.png";
-        icons["Hull FC"] = iconPrefix + "/6/65/Hullcolours.svg/16px-Hullcolours.svg.png";
-        icons["Hull Kingston Rovers"] = iconPrefix + "/8/8f/HKRcolours.svg/16px-HKRcolours.svg.png";
-        icons["Leeds Rhinos"] = iconPrefix + "/5/5f/Rhinoscolours.svg/16px-Rhinoscolours.svg.png";
-        icons["London Broncos"] = iconPrefix + "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
-        icons["Harlequins RL"] = iconPrefix + "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
-        icons["Salford City Reds"] = iconPrefix + "/8/81/Redscolours.svg/16px-Redscolours.svg.png";
-        icons["St. Helens"] = iconPrefix + "/5/5e/Saintscolours.svg/16px-Saintscolours.svg.png";
-        icons["Wakefield Wildcats"] = iconPrefix + "/e/e8/Wcatscolours.svg/16px-Wcatscolours.svg.png";
-        icons["Warrington Wolves"] = iconPrefix + "/f/fd/Wolvescolours.svg/16px-Wolvescolours.svg.png";
-        icons["Widnes Vikings"] = iconPrefix + "/e/ec/Widnes_colours.svg/16px-Widnes_colours.svg.png";
-        icons["Wigan Warriors"] = iconPrefix + "/c/c0/Wigancolours.svg/16px-Wigancolours.svg.png";
+
+        icons["Bradford Bulls"] = "/e/eb/Bullscolours.svg/16px-Bullscolours.svg.png";
+        icons["Castleford Tigers"] = "/f/fd/Castleford_colours.svg/16px-Castleford_colours.svg.png";
+        icons["Catalan Dragons"] = "/0/0c/Catalanscolours.svg/16px-Catalanscolours.svg.png";
+        icons["Huddersfield Giants"] = "/7/73/Giantscolours.svg/16px-Giantscolours.svg.png";
+        icons["Hull FC"] = "/6/65/Hullcolours.svg/16px-Hullcolours.svg.png";
+        icons["Hull Kingston Rovers"] = "/8/8f/HKRcolours.svg/16px-HKRcolours.svg.png";
+        icons["Leeds Rhinos"] = "/5/5f/Rhinoscolours.svg/16px-Rhinoscolours.svg.png";
+        icons["London Broncos"] = "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
+        icons["Harlequins RL"] = "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
+        icons["Salford City Reds"] = "/8/81/Redscolours.svg/16px-Redscolours.svg.png";
+        icons["St. Helens"] = "/5/5e/Saintscolours.svg/16px-Saintscolours.svg.png";
+        icons["Wakefield Wildcats"] = "/e/e8/Wcatscolours.svg/16px-Wcatscolours.svg.png";
+        icons["Warrington Wolves"] = "/f/fd/Wolvescolours.svg/16px-Wolvescolours.svg.png";
+        icons["Widnes Vikings"] = "/e/ec/Widnes_colours.svg/16px-Widnes_colours.svg.png";
+        icons["Wigan Warriors"] = "/c/c0/Wigancolours.svg/16px-Wigancolours.svg.png";
+        _.each(icons, function(value, key) {
+            icons[key] = iconPrefix + value;
+        });
 
         icons["Bradford"] = icons["Bradford Bulls"];
         icons["Castleford"] = icons["Castleford Tigers"];
