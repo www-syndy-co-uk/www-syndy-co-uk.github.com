@@ -1,1 +1,0 @@
-// To satisfy Scripted editor. This file will NOT be used apart from as a Scripted editor hack.
