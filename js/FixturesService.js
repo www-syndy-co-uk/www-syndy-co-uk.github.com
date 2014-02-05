@@ -89,7 +89,7 @@ define(["jquery"], function ($) {
         }
         s += "callback=?";
 
-        var url = opts.host + opts.path + "?" + s;
+        var url = "" + opts.host + opts.path + "?" + s;
 
         return $.getJSON(url).then(function (data) {
             if (!data.errors || data.errors.length < 1) {
