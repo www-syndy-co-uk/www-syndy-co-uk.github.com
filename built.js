@@ -592,9 +592,6 @@ define('FixturesService',["jquery"], function ($) {
 
 });
 
-// To satisfy Scripted editor. This file will NOT be used apart from as a Scripted editor hack.;
-define("backbone", function(){});
-
 define('FixtureListModel',["backbone"], function(Backbone) {
 
     var FixtureListModel = Backbone.Model.extend({
