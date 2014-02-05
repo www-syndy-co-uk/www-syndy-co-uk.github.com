@@ -1,5 +1,5 @@
 /*globals window, console*/
-define(function () {
+define(function() {
 
     //var root = "http://www.superleague.co.uk/_img/imagesource.php";
     //var root = "http://static." + window.location.host.match(/\w+\.(.*)/)[1] + "/img/logos/teams/85/";
