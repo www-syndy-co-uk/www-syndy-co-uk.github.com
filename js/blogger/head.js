@@ -28,7 +28,8 @@ function makeRequireConfig() {
             // 1.11.0 because 2.x does not support IE8
             "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
             "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
-            "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min")
+            "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min"),
+            "jqueryui": "//code.jquery.com/ui/1.10.4/jquery-ui" + min()
         },
         shim: {
             underscore: {
@@ -44,15 +45,22 @@ function makeRequireConfig() {
 
 function importScriptAndCss() {
     try {
+        // first and most important, requirejs.
         writelnScript("//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min() + ".js");
+
         writelnScript(syndy.staticRoot + "/js/CookieManager.js");
+
         // site css
         writelnCSS(syndy.staticRoot + "/css/template.css");
+
         // blogger.com widgets JS and widgets CSS overrides
         var widgetsJs = syndy.staticRoot + "/blogger/3790812069-widgets.js";
         var widgetsCss = syndy.staticRoot + "/blogger/1158881256-widget_css_2_bundle.css";
         writelnScript(widgetsJs);
         writelnCSS(widgetsCss);
+
+        // jqueryui
+        //writelnCSS("//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui" + min() + ".css");
     } catch (e) {
         alert(e);
     }
