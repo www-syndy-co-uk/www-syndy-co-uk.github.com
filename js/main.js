@@ -1,2 +1,2 @@
-define(["syndy/ui/login-button", "syndy/ui/latest-odds"], function() {
+define(["syndy/ui/login-button", "syndy/ui/latest-odds", "syndy/ui/fixtures"], function() {
 });

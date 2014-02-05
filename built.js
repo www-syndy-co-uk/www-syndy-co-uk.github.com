@@ -481,5 +481,421 @@ return {
 
 });
 
-define('main',["syndy/ui/login-button", "syndy/ui/latest-odds"], function() {
+/*global window, alert*/
+define('FixturesService',["jquery"], function ($) {
+
+    function getRoundsFromFixtures(fixtures) {
+        var rounds = [];
+        for (var i = 0; i < fixtures.length; i++) {
+            var f = fixtures[i];
+            var roundIdx = parseInt(f.round, 10);
+            var round = [];
+            if (!isNaN(roundIdx)) {
+                roundIdx -= 1;
+                while (rounds.length <= roundIdx) {
+                    rounds.push([]);
+                }
+                round = rounds[roundIdx];
+            }
+            round.push(f);
+        }
+        return rounds;
+    }
+
+    function resolveTeam(team, teams) {
+        if (!teams) {
+            return team;
+        }
+        return teams[team];
+    }
+
+    /**
+     * Create a map of [team name/string] -> [team id/int].
+     */
+    function createTeamIds(fixtures, teams) {
+        // Keep a team id Map for adding id attrs to team elements
+        var teamIds = {};
+        var teamIdCount = 0;
+        _.each(fixtures, function(fixture, fixtureIdx) {
+            var team1 = resolveTeam(fixture.teamId1, teams);
+            var team2 = resolveTeam(fixture.teamId2, teams);
+            // ids are used for clicks
+            var teamId1 = teamIds[team1];
+            if ("undefined" === typeof teamId1) {
+                teamId1 = teamIds[team1] = teamIdCount++;
+            }
+            var teamId2 = teamIds[team2];
+            if ("undefined" === typeof teamId2) {
+                teamId2 = teamIds[team2] = teamIdCount++;
+            }
+        });
+        console.log(teamIds);
+        return teamIds;
+    }
+
+    function handleData(data) {
+        var d = {};
+        // slim fixtures (smaller json) have data.fixtures. regular fixtures do not.
+        var fixtures = data.fixtures ? data.fixtures : data;
+        d.rounds = getRoundsFromFixtures(fixtures);
+        d.fixtures = fixtures;
+        d.teams = data.teams || [];
+        return d;
+    }
+
+    function FixturesService(opts) {
+        opts = opts || {};
+        this.opts = opts;
+
+        opts.host = opts.host || "//api.syndy.co.uk";
+        opts.port = opts.port || "";
+        opts.slim = opts.slim || false;
+        opts.path = opts.path || (opts.slim ? "/fixtures/slim" : "/fixtures");
+        if (opts.port) {
+            opts.host = opts.host + ":" + opts.port;
+        }
+    }
+
+    /**
+     * Loads the fixture data, and returns a jQuery Deferred.
+     * This Deferred can be used to attach other event handlers
+     * to the Ajax request.
+     */
+    FixturesService.prototype.load = function(params) {
+        var self = this;
+        var opts = this.opts;
+
+        var s = "";
+        if (params) {
+            s = ("string" !== typeof params) ? $.param(params) : params;
+            s += "&";
+        }
+        s += "callback=?";
+
+        var url = "" + opts.host + opts.path + "?" + s;
+
+        return $.getJSON(url).then(function (data) {
+            if (!data.errors || data.errors.length < 1) {
+                return handleData(data);
+            }
+            return data;
+        }).fail(function (response, status, xhr) {
+            if (status !== "error") {
+                return;
+            }
+            var arr = [url].concat(Array.prototype.slice.call(arguments));
+            alert(arr.join("\n"));
+        });
+    };
+
+    return FixturesService;
+
+});
+
+// To satisfy Scripted editor. This file will NOT be used apart from as a Scripted editor hack.;
+define("backbone", function(){});
+
+define('FixtureListModel',["backbone"], function(Backbone) {
+
+    var FixtureListModel = Backbone.Model.extend({
+
+        initialize: function() {}
+
+    });
+
+    // ----------
+    // return
+    // ----------
+
+    return FixtureListModel;
+
+});
+/*globals window, console*/
+define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbone, TeamIcons) {
+
+    var teamIcons = new TeamIcons();
+
+    function formatKickOff(kickOff) {
+        var s = "" + new Date(kickOff).toUTCString();
+        // 00:00:00 means kickoff time unknown
+        s = s.replace(/00:00:00/, "??:??:??");
+        var i = s.indexOf("(");
+        if (i > -1) {
+            s = s.substring(0, i).trim();
+        }
+        return s;
+    }
+
+    function defaultIconRetriever(teamIcons, teamName) {
+        return teamIcons.getIconUrl(teamName);
+    }
+
+    function createRoundElement(roundTpl, fixtureTpl, iconRetriever, roundIdx, round, teams) {
+        /**
+         * This function will set the data-fixtureIdx attribute on the table
+         * row, and any child elements that have a data-fixtureIdx attribute.
+         */
+        function setMetaData($tr, fixtureIdx) {
+            $tr.find("[data-fixtureIdx]").add($tr).each(function() {
+                $(this).attr('data-fixtureIdx', fixtureIdx);
+            });
+        }
+
+        if (!round || round.length < 1) {
+            return null;
+        }
+
+        var elRound = $(roundTpl({
+            round: {
+                name: "" + (roundIdx + 1)
+            }
+        }));
+
+        var tbody = elRound.find(".fixtures tbody");
+        var prevKickOff = null;
+        $(round).each(function(fixtureIdx, fixture) {
+            var team1 = fixture.team1;
+            var team2 = fixture.team2;
+            var team1Id = team1;
+            var team2Id = team2;
+            var trFixture = $(fixtureTpl({
+                kickOff: formatKickOff(fixture.kickOff),
+                team1: team1,
+                team2: team2,
+                team1Id: team1Id,
+                team2Id: team2Id,
+                src1: iconRetriever(team1),
+                src2: iconRetriever(team2),
+                score1: (fixture.score1 > -1) ? fixture.score1 : "",
+                score2: (fixture.score1 > -1) ? fixture.score2 : "",
+                htScore1: (fixture.score1 > -1) ? "(" + fixture.htScore1 + ")" : "",
+                htScore2: (fixture.score1 > -1) ? "(" + fixture.htScore2 + ")" : "",
+                score1class: (fixture.score1 >= fixture.score2) ? "won" : "",
+                score2class: (fixture.score2 >= fixture.score1) ? "won" : ""
+            }));
+            if (prevKickOff == fixture.kickOff) {
+                // Remove the first item, which is the kickoff row.
+                trFixture = trFixture.slice(1);
+            }
+            setMetaData(trFixture, fixtureIdx);
+            prevKickOff = fixture.kickOff;
+            tbody.append(trFixture);
+        });
+        return elRound;
+    }
+
+    var FixtureListView = Backbone.View.extend({
+
+        initialize: function(opts) {
+            this.options = opts;
+            opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
+            // Cache the template function for a single item.
+            this.roundTpl = _.template(opts.$roundTemplate.html());
+            this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
+            this.listenTo(this.model, "change", this.render);
+        },
+
+        // Re-render the titles of the todo item.
+        render: function() {
+            var opts = this.options;
+            var data = this.model.attributes;
+
+            var fixtures = data.fixtures;
+            var rounds = data.rounds;
+            var teams = data.teams;
+
+            this.$el.html("");
+            _.each(rounds, function(round, idx) {
+                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.iconRetriever, idx, round, teams);
+                if (elRound) {
+                    this.$el.append(elRound);
+                }
+            }, this);
+
+            return this;
+        }
+
+    });
+
+
+    // ----------
+    // 'statics'
+    // ----------
+
+    FixtureListView.getFixtureInfo = function(el) {
+        return {
+            fixtureIdx: FixtureListView.getFixtureIdx(el),
+            isHome: FixtureListView.isHome(el)
+        };
+    };
+
+    FixtureListView.getFixtureIdx = function(el) {
+        return parseInt($(el).attr("data-fixtureIdx"), 10);
+    };
+
+    FixtureListView.isHome = function(el) {
+        return "true" === $(el).attr("data-home");
+    };
+
+    // ----------
+    // return
+    // ----------
+
+    return FixtureListView;
+
+});
+/*global syndy*/
+define('syndy/ui/fixtures',["jquery", "FixturesService", "FixtureListModel", "FixtureListView"], function ($, FixturesService, FixtureListModel, FixtureListView) {
+
+
+var fixturesService = new FixturesService({
+    host: syndy.apiRoot,
+    port: window.location.port
+});
+var model = new FixtureListModel();
+var ui = new FixtureListView({
+    el: $(".rounds")[0],
+    model: model,
+    $roundTemplate: $("#roundTemplate"),
+    $fixtureTemplate: $("#fixtureTemplate")
+});
+
+
+
+
+
+function initSelRound(size) {
+    // TODO - GLOBAL LOOKUP
+    var $selRound = $("select[name='selRound']").first();
+    if ($selRound.find("option").length > 0) {
+        // Don't replace existing rounds
+        return;
+    }
+
+    $selRound.html("");
+    $selRound.append($("<option value=''>All</option>"));
+    for (var i = 0; i < size; i++) {
+        $selRound.append($("<option value=" + (i+1) + ">" + (i+1) + "</option>"));
+    }
+}
+
+
+function initSelTeam(teams) {
+    // TODO - GLOBAL LOOKUP
+    var $selTeam = $("select[name='selTeam']").first();
+    if ($selTeam.find("option").length > 0) {
+        // Don't replace existing teams
+        return;
+    }
+
+    $selTeam.html("");
+    $selTeam.append($("<option value=''>All</option>"));
+    for (var teamIdx in teams) {
+        $selTeam.append($("<option value=" + teamIdx + ">" + teams[teamIdx] + "</option>"));
+    }
+}
+
+
+function initSelMonth() {
+    // TODO - GLOBAL LOOKUP
+    var $selMonth = $("select[name='selMonth']").first();
+    if ($selMonth.find("option").length > 0) {
+        // Don't replace existing months
+        return;
+    }
+
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    $selMonth.html("");
+    $selMonth.append($("<option value=''>All</option>"));
+    $(months).each(function (idx, month) {
+        $selMonth.append($("<option value=" + (idx+1) + ">" + month + "</option>"));
+    });
+}
+
+function createOnFixturesLoadedHandler(searchLink) {
+    var txt = searchLink.text();
+    return function(data) {
+    // Got the data
+    // Only call refreshData when dom:ready
+    //$(function () {
+        $("div.search").show();
+        $(".loading").hide();
+        searchLink.text(txt);
+        initSelTeam(data.teams);
+        initSelMonth();
+        initSelRound(data.rounds.length);
+        model.set(data);
+    //});
+    };
+}
+
+function loadFixtures(params) {
+    function defaultParams() {
+        // Inspect the search (query params) string to see if we need to pass on query params to AJAX request.
+        var search = window.location.search;
+        if (search.length > 0) {
+            // Remove "?" and replace with "&".
+            search = "&" + search.substring(1);
+        }
+    }
+
+    params = params || defaultParams();
+    var searchLink = $("a.search").first();
+    var onFixturesLoaded = createOnFixturesLoadedHandler(searchLink);
+    searchLink.text("");
+    $(".loading").show();
+    $("div.search").hide();
+    return fixturesService.load(params).done(onFixturesLoaded);
+}
+
+
+
+
+
+// Click team logic.
+function init() {
+    var prevTeamId = null;
+    // Only register one click handler, instead of a click handler per team, per fixture, per round.
+    // So that's one click handler, versus 2*7*27.
+    $(document).click(function (evt) {
+        var t = $(evt.target);
+        if (t.is(".team1, .team2")) {
+            var teamId = /(teamid_\w*)/.exec(t.attr("class"))[1];
+            if (prevTeamId) {
+                $("." + prevTeamId).removeClass("highlight");
+            }
+            $("." + teamId).addClass("highlight");
+            prevTeamId = teamId;
+        }
+    });
+
+    $("a.search").click(function (evt) {
+        var $selTeam = $("select[name='selTeam']").first();
+        var team = $selTeam.val();
+        var $selMonth = $("select[name='selMonth']").first();
+        var month = $selMonth.val();
+        var $selRound = $("select[name='selRound']").first();
+        var round = $selRound.val();
+        var params = {};
+        if (team) {
+            params["team"] = $selTeam.find("option:selected").text();
+        }
+        if (month) {
+            params["month"] = month;
+        }
+        if (round) {
+            params["round"] = round;
+        }
+        loadFixtures(params);
+    });
+};
+
+return {
+    loadFixtures: loadFixtures,
+    init: init
+};
+
+});
+
+define('main',["syndy/ui/login-button", "syndy/ui/latest-odds", "syndy/ui/fixtures"], function() {
 });
