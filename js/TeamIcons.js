@@ -1,7 +1,7 @@
 define(["underscore"], function(_) {
 
     function TeamIcons() {
-        var icons = {};
+        var icons = this.icons = {};
         var iconPrefix = "http://upload.wikimedia.org/wikipedia/commons/thumb";
 
         icons["Bradford Bulls"] = "/e/eb/Bullscolours.svg/16px-Bullscolours.svg.png";
@@ -36,11 +36,15 @@ define(["underscore"], function(_) {
         icons["Warrington"] = icons["Warrington Wolves"];
         icons["Widnes"] = icons["Widnes Vikings"];
         icons["Wigan"] = icons["Wigan Warriors"];
-
-        this.getIconUrl = function(teamName) {
-            return icons[teamName];
-        };
     }
+
+    TeamIcons.prototype.getIconUrl = function(teamName) {
+        return this.icons[teamName];
+    };
+
+    TeamIcons.prototype.keys = function() {
+        return _.keys(this.icons);
+    };
 
     return TeamIcons;
 
