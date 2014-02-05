@@ -9,9 +9,9 @@ var fixturesService = new FixturesService({
 var model = new FixtureListModel();
 var ui = new FixtureListView({
     el: $(".rounds")[0],
+    model: model,
     $roundTemplate: $("#roundTemplate"),
-    $fixtureTemplate: $("#fixtureTemplate"),
-    model: model
+    $fixtureTemplate: $("#fixtureTemplate")
 });
 
 
