@@ -132,8 +132,35 @@ return OddsService;
 
 define('TeamIcons',["underscore"], function(_) {
 
+    var aliases = {
+        "Bradford Bulls": ["Bradford"],
+        "Castleford Tigers": ["Castleford"],
+        "Catalan Dragons": ["Catalans", "Catalan Dragons"],
+        "Huddersfield Giants": ["Huddersfield"],
+        "Hull FC": ["Hull"],
+        "Hull Kingston Rovers": ["Hull K R", "Hull KR"],
+        "Leeds Rhinos": ["Leeds"],
+        "London Broncos": ["London"],
+        "Salford Red Devils": ["Salford"],
+        "St. Helens": ["St Helens"],
+        "Wakefield Wildcats": ["Wakefield"],
+        "Warrington Wolves": ["Warrington"],
+        "Widnes Vikings": ["Widnes"],
+        "Wigan Warriors": ["Wigan"]
+    };
+
+    function setForAllAliases(map) {
+        _.each(aliases, function(value, key) {
+            _.each(value, function(alias) {
+                map[alias] = map[key];
+            });
+        });
+    }
+
     function TeamIcons() {
         var icons = this.icons = {};
+        var css = this.css = {};
+
         var iconPrefix = "http://upload.wikimedia.org/wikipedia/commons/thumb";
 
         icons["Bradford Bulls"] = "/e/eb/Bullscolours.svg/16px-Bullscolours.svg.png";
@@ -144,34 +171,47 @@ define('TeamIcons',["underscore"], function(_) {
         icons["Hull Kingston Rovers"] = "/8/8f/HKRcolours.svg/16px-HKRcolours.svg.png";
         icons["Leeds Rhinos"] = "/5/5f/Rhinoscolours.svg/16px-Rhinoscolours.svg.png";
         icons["London Broncos"] = "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
-        icons["Harlequins RL"] = "/f/f8/Quinscolours.svg/16px-Quinscolours.svg.png";
         icons["Salford Red Devils"] = "/8/81/Redscolours.svg/16px-Redscolours.svg.png";
         icons["St. Helens"] = "/5/5e/Saintscolours.svg/16px-Saintscolours.svg.png";
         icons["Wakefield Wildcats"] = "/e/e8/Wcatscolours.svg/16px-Wcatscolours.svg.png";
         icons["Warrington Wolves"] = "/f/fd/Wolvescolours.svg/16px-Wolvescolours.svg.png";
         icons["Widnes Vikings"] = "/e/ec/Widnes_colours.svg/16px-Widnes_colours.svg.png";
         icons["Wigan Warriors"] = "/c/c0/Wigancolours.svg/16px-Wigancolours.svg.png";
+
         _.each(icons, function(value, key) {
             icons[key] = iconPrefix + value;
         });
 
-        icons["Bradford"] = icons["Bradford Bulls"];
-        icons["Castleford"] = icons["Castleford Tigers"];
-        icons["Catalans Dragons"] = icons["Catalan Dragons"];
-        icons["Huddersfield"] = icons["Huddersfield Giants"];
-        icons["Hull"] = icons["Hull FC"];
-        icons["Hull K R"] = icons["Hull Kingston Rovers"];
-        icons["Leeds"] = icons["Leeds Rhinos"];
-        icons["Salford"] = icons["Salford Red Devils"];
-        icons["St Helens"] = icons["St. Helens"];
-        icons["Wakefield"] = icons["Wakefield Wildcats"];
-        icons["Warrington"] = icons["Warrington Wolves"];
-        icons["Widnes"] = icons["Widnes Vikings"];
-        icons["Wigan"] = icons["Wigan Warriors"];
+        setForAllAliases(icons);
+
+        css["Bradford Bulls"] = "Bulls";
+        css["Castleford Tigers"] = "Castleford";
+        css["Catalan Dragons"] = "Catalans";
+        css["Huddersfield Giants"] = "Giants";
+        css["Hull FC"] = "Hull";
+        css["Hull Kingston Rovers"] = "HKR";
+        css["Leeds Rhinos"] = "Rhinos";
+        css["London Broncos"] = "Broncos";
+        css["Salford Red Devils"] = "Reds";
+        css["St. Helens"] = "Saints";
+        css["Wakefield Wildcats"] = "Wcats";
+        css["Warrington Wolves"] = "Wolves";
+        css["Widnes Vikings"] = "Widnes";
+        css["Wigan Warriors"] = "Wigan";
+
+        _.each(css, function(value, key) {
+            css[key] = "sprite_16px-" + value + "_colours";
+        });
+
+        setForAllAliases(css);
     }
 
     TeamIcons.prototype.getIconUrl = function(teamName) {
         return this.icons[teamName];
+    };
+
+    TeamIcons.prototype.getIconClass = function(teamName) {
+        return this.css[teamName];
     };
 
     TeamIcons.prototype.keys = function() {
@@ -181,6 +221,7 @@ define('TeamIcons',["underscore"], function(_) {
     return TeamIcons;
 
 });
+
 define('syndy/ui/latest-odds',["jquery", "underscore", "OddsService", "TeamIcons"], function ($, _, OddsService, TeamIcons) {
 
 
@@ -321,15 +362,14 @@ function createMatchElement(match) {
     function createBookmakersOddsEl (curBookie) {
         var bet1 = curBookie.bet1 || {};
         var bet2 = curBookie.bet2 || {};
-        var src1 = teamIcons.getIconUrl(bet1.name);
-        var src2 = teamIcons.getIconUrl(bet2.name);
-        var defaultSrc = "http://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif";
+        var team1ColourCssClass = teamIcons.getIconClass(bet1.name);
+        var team2ColourCssClass = teamIcons.getIconClass(bet2.name);
         var ob = {
             bet1: $.extend({}, bet1, {odds: oddsToString(bet1.odds) }),
             bet2: $.extend({}, bet2, {odds: oddsToString(bet2.odds) }),
             draw: { odds: curBookie.draw ? oddsToString(curBookie.draw.odds) : "" },
-            src1: src1 ? src1 : defaultSrc,
-            src2: src2 ? src2 : defaultSrc
+            team1ColourCssClass: team1ColourCssClass ? team1ColourCssClass : "",
+            team2ColourCssClass: team2ColourCssClass ? team2ColourCssClass : ""
         };
         var elBet = $(tmplBet(ob));
         return elBet;
@@ -643,7 +683,11 @@ define('syndy/fixtures/FixtureListView',[
         return teamIcons.getIconUrl(teamName);
     }
 
-    function createRoundElement(roundTpl, fixtureTpl, iconRetriever, roundIdx, round, teams) {
+    function defaultTeamColourCssClassRetriever(teamIcons, teamName) {
+        return teamIcons.getIconClass(teamName);
+    }
+
+    function createRoundElement(roundTpl, fixtureTpl, teamColourCssClassRetriever, roundIdx, round, teams) {
         /**
          * This function will set the data-fixtureIdx attribute on the table
          * row, and any child elements that have a data-fixtureIdx attribute.
@@ -677,8 +721,8 @@ define('syndy/fixtures/FixtureListView',[
                 team2: team2,
                 team1Id: team1Id,
                 team2Id: team2Id,
-                src1: iconRetriever(team1),
-                src2: iconRetriever(team2),
+                team1ColourCssClass: teamColourCssClassRetriever(team1),
+                team2ColourCssClass: teamColourCssClassRetriever(team2),
                 score1: (fixture.score1 > -1) ? fixture.score1 : "",
                 score2: (fixture.score1 > -1) ? fixture.score2 : "",
                 htScore1: (fixture.score1 > -1) ? "(" + fixture.htScore1 + ")" : "",
@@ -709,7 +753,7 @@ define('syndy/fixtures/FixtureListView',[
 
             this.options = opts;
 
-            opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
+            opts.teamColourCssClassRetriever = opts.teamColourCssClassRetriever || _.bind(defaultTeamColourCssClassRetriever, null, teamIcons);
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
@@ -729,7 +773,7 @@ define('syndy/fixtures/FixtureListView',[
 
             this.$el.html("");
             _.each(rounds, function(round, idx) {
-                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.iconRetriever, idx, round, teams);
+                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.teamColourCssClassRetriever, idx, round, teams);
                 if (elRound) {
                     this.$el.append(elRound);
                 }
