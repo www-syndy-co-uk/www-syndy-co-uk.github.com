@@ -482,7 +482,7 @@ return {
 });
 
 /*global window, alert*/
-define('FixturesService',["jquery"], function ($) {
+define('syndy/fixtures/FixturesService',["jquery"], function ($) {
 
     function getRoundsFromFixtures(fixtures) {
         var rounds = [];
@@ -574,12 +574,12 @@ define('FixturesService',["jquery"], function ($) {
 
         var url = "" + opts.host + opts.path + "?" + s;
 
-        return $.getJSON(url).then(function (data) {
+        return $.getJSON(url).then(function(data) {
             if (!data.errors || data.errors.length < 1) {
                 return handleData(data);
             }
             return data;
-        }).fail(function (response, status, xhr) {
+        }, function(response, status, xhr) {
             if (status !== "error") {
                 return;
             }
@@ -592,7 +592,7 @@ define('FixturesService',["jquery"], function ($) {
 
 });
 
-define('FixtureListModel',["backbone"], function(Backbone) {
+define('syndy/fixtures/FixtureListModel',["backbone"], function(Backbone) {
 
     var FixtureListModel = Backbone.Model.extend({
 
@@ -608,14 +608,30 @@ define('FixtureListModel',["backbone"], function(Backbone) {
 
 });
 /*globals window, console*/
-define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbone, TeamIcons) {
+define('syndy/fixtures/FixtureListView',[
+    "jquery",
+    "underscore",
+    "backbone",
+    "TeamIcons"
+], function($, _, Backbone, TeamIcons) {
 
     var teamIcons = new TeamIcons();
 
+    /**
+     * @param {string} kickOff E.g. "Thu, 20 Feb 2014 20:00:00 GMT"
+     */
     function formatKickOff(kickOff) {
         var s = "" + new Date(kickOff).toUTCString();
+
         // 00:00:00 means kickoff time unknown
-        s = s.replace(/00:00:00/, "??:??:??");
+        //s = s.replace(/00:00:00/, "??:??:??");
+
+        // If we don't have the time, then remove it (and everything after, like timezone).
+        var m  = s.match(/00:00:00/);
+        if (m) {
+            s = s.substring(0, m.index).trim();
+        }
+
         var i = s.indexOf("(");
         if (i > -1) {
             s = s.substring(0, i).trim();
@@ -653,8 +669,8 @@ define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], func
         $(round).each(function(fixtureIdx, fixture) {
             var team1 = fixture.team1;
             var team2 = fixture.team2;
-            var team1Id = team1;
-            var team2Id = team2;
+            var team1Id = team1.replace(" ", "");
+            var team2Id = team2.replace(" ", "");
             var trFixture = $(fixtureTpl({
                 kickOff: formatKickOff(fixture.kickOff),
                 team1: team1,
@@ -683,13 +699,23 @@ define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], func
 
     var FixtureListView = Backbone.View.extend({
 
+        events: {
+            "click .team1": "onClickTeam",
+            "click .team2": "onClickTeam"
+        },
+
         initialize: function(opts) {
+            opts = opts || {};
+
             this.options = opts;
+
             opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
             this.listenTo(this.model, "change", this.render);
+
+            this.lastClickedTeamId = null;
         },
 
         // Re-render the titles of the todo item.
@@ -710,6 +736,18 @@ define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], func
             }, this);
 
             return this;
+        },
+
+        onClickTeam: function(evt) {
+            var t = $(evt.target);
+            if (t.is(".team1, .team2")) {
+                var teamId = /(teamid_\w*)/.exec(t.attr("class"))[1];
+                if (this.lastClickedTeamId) {
+                    $("." + this.lastClickedTeamId).removeClass("highlight");
+                }
+                $("." + teamId).addClass("highlight");
+                this.lastClickedTeamId = teamId;
+            }
         }
 
     });
@@ -742,7 +780,12 @@ define('FixtureListView',["jquery", "underscore", "backbone", "TeamIcons"], func
 
 });
 /*global syndy*/
-define('syndy/ui/fixtures',["jquery", "FixturesService", "FixtureListModel", "FixtureListView"], function ($, FixturesService, FixtureListModel, FixtureListView) {
+define('syndy/ui/fixtures',[
+    "jquery",
+    "syndy/fixtures/FixturesService",
+    "syndy/fixtures/FixtureListModel",
+    "syndy/fixtures/FixtureListView"
+], function ($, FixturesService, FixtureListModel, FixtureListView) {
 
 
 var fixturesService = new FixturesService({
@@ -750,7 +793,7 @@ var fixturesService = new FixturesService({
     port: window.location.port
 });
 var model = new FixtureListModel();
-var ui = new FixtureListView({
+var view = new FixtureListView({
     el: $(".rounds")[0],
     model: model,
     $roundTemplate: $("#roundTemplate"),
@@ -851,21 +894,6 @@ function loadFixtures(params) {
 
 // Click team logic.
 function init() {
-    var prevTeamId = null;
-    // Only register one click handler, instead of a click handler per team, per fixture, per round.
-    // So that's one click handler, versus 2*7*27.
-    $(document).click(function (evt) {
-        var t = $(evt.target);
-        if (t.is(".team1, .team2")) {
-            var teamId = /(teamid_\w*)/.exec(t.attr("class"))[1];
-            if (prevTeamId) {
-                $("." + prevTeamId).removeClass("highlight");
-            }
-            $("." + teamId).addClass("highlight");
-            prevTeamId = teamId;
-        }
-    });
-
     $("a.search").click(function (evt) {
         var $selTeam = $("select[name='selTeam']").first();
         var team = $selTeam.val();
