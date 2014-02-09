@@ -19,7 +19,9 @@ define(["jquery", "TipsModel"], function(jQuery, TipsModel) {
         this.getCurrentTip = function() {
             var url = host + "/tipping/getCurrentTip";
             url += "?callback=?";
-            return $.getJSON(url);
+            return $.getJSON(url).then(function(data) {
+                return data;
+            });
         };
 
         /**
@@ -38,7 +40,7 @@ define(["jquery", "TipsModel"], function(jQuery, TipsModel) {
                 dataType: "json",
                 traditional: true
             };
-            return $.ajax(url, settings).pipe(function(data) {
+            return $.ajax(url, settings).then(function(data) {
                 return data;
             });
         };
