@@ -1,3 +1,20 @@
+.sprite { background: url('../img/colours/16px-team-colours-sprite.png') no-repeat top left; width: 16px; height: 16px;  }
+.sprite_16px-Giants_colours { background-position: 0px 0px;  }
+.sprite_16px-HKR_colours { background-position: 0px -26px;  }
+.sprite_16px-Hull_colours { background-position: 0px -52px;  }
+.sprite_16px-Quins_colours { background-position: 0px -78px;  }
+.sprite_16px-Reds_colours { background-position: 0px -104px;  }
+.sprite_16px-Rhinos_colours { background-position: 0px -130px;  }
+.sprite_16px-Saints_colours { background-position: 0px -156px;  }
+.sprite_16px-Wcats_colours { background-position: 0px -182px;  }
+.sprite_16px-Widnes_colours { background-position: 0px -208px;  }
+.sprite_16px-Wigan_colours { background-position: 0px -234px;  }
+.sprite_16px-Wolves_colours { background-position: 0px -260px;  }
+.sprite_16px-Broncos_colours { background-position: 0px -286px;  }
+.sprite_16px-Bulls_colours { background-position: 0px -312px;  }
+.sprite_16px-Castleford_colours { background-position: 0px -338px;  }
+.sprite_16px-Catalans_colours { background-position: 0px -364px;  }
+
 #navbar {
     display: none;
 }
