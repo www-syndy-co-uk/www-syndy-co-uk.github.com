@@ -18,18 +18,42 @@ function min(minStr, isMin) {
     return (!isMin ? "" : minStr);
 }
 
+// Load JS from different places depending on syndv.dev toggle.
+// We use CDN for common libraries when not in dev mode.
+// This means when we test we don't need internet connection for CDN.
+var paths = !syndy.dev ? {
+    // non-requirejs paths
+    "requirejs": "//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min(),
+    "YUI": "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js",
+
+    // requirejs paths
+    // 1.11.0 because 2.x does not support IE8
+    "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
+    "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
+    "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min"),
+    "jqueryui": "//code.jquery.com/ui/1.10.4/jquery-ui" + min()
+} : {
+    // non-requirejs paths
+    "requirejs": syndy.staticRoot + "/js/lib/require" + min(".min"),
+
+    // requirejs paths
+    "jquery": "lib/jquery" + min(".min"),
+    "underscore": "lib/underscore" + min("-min"),
+    "backbone": "lib/backbone" + min("-min")
+};
+
 function makeRequireConfig() {
     return {
         baseUrl: syndy.staticRoot + "/js",
         YUI: {
-            src: "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js"
+            src: paths.YUI
         },
         paths: {
             // 1.11.0 because 2.x does not support IE8
-            "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
-            "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
-            "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min"),
-            "jqueryui": "//code.jquery.com/ui/1.10.4/jquery-ui" + min()
+            "jquery": paths["jquery"],
+            "underscore": paths["underscore"],
+            "backbone": paths["backbone"],
+            "jqueryui":  paths["jqueryui"]
         },
         shim: {
             underscore: {
@@ -46,7 +70,7 @@ function makeRequireConfig() {
 function importScriptAndCss() {
     try {
         // first and most important, requirejs.
-        writelnScript("//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min() + ".js");
+        writelnScript(paths["requirejs"] + ".js");
 
         writelnScript(syndy.staticRoot + "/js/CookieManager.js");
 
@@ -108,7 +132,7 @@ function fakeJSON() {
 
 function fakeStringTrim() {
     // Need to use our own non-AMD es5-shim.js when importing this way.
-    if (!String.prototype.hasOwnProperty("trim")) writelnScript(syndy.staticRoot + "/js/es5-shim.js");
+    if (!String.prototype.hasOwnProperty("trim")) writelnScript(syndy.staticRoot + "/js/lib/es5-shim.js");
 }
 
 function fakeStringEndsWith() {
