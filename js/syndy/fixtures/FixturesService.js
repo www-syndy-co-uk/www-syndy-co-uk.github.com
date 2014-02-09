@@ -91,12 +91,12 @@ define(["jquery"], function ($) {
 
         var url = "" + opts.host + opts.path + "?" + s;
 
-        return $.getJSON(url).then(function (data) {
+        return $.getJSON(url).then(function(data) {
             if (!data.errors || data.errors.length < 1) {
                 return handleData(data);
             }
             return data;
-        }).fail(function (response, status, xhr) {
+        }, function(response, status, xhr) {
             if (status !== "error") {
                 return;
             }

@@ -1,12 +1,28 @@
 /*globals window, console*/
-define(["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbone, TeamIcons) {
+define([
+    "jquery",
+    "underscore",
+    "backbone",
+    "TeamIcons"
+], function($, _, Backbone, TeamIcons) {
 
     var teamIcons = new TeamIcons();
 
+    /**
+     * @param {string} kickOff E.g. "Thu, 20 Feb 2014 20:00:00 GMT"
+     */
     function formatKickOff(kickOff) {
         var s = "" + new Date(kickOff).toUTCString();
+
         // 00:00:00 means kickoff time unknown
-        s = s.replace(/00:00:00/, "??:??:??");
+        //s = s.replace(/00:00:00/, "??:??:??");
+
+        // If we don't have the time, then remove it (and everything after, like timezone).
+        var m  = s.match(/00:00:00/);
+        if (m) {
+            s = s.substring(0, m.index).trim();
+        }
+
         var i = s.indexOf("(");
         if (i > -1) {
             s = s.substring(0, i).trim();
@@ -44,8 +60,8 @@ define(["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbon
         $(round).each(function(fixtureIdx, fixture) {
             var team1 = fixture.team1;
             var team2 = fixture.team2;
-            var team1Id = team1;
-            var team2Id = team2;
+            var team1Id = team1.replace(" ", "");
+            var team2Id = team2.replace(" ", "");
             var trFixture = $(fixtureTpl({
                 kickOff: formatKickOff(fixture.kickOff),
                 team1: team1,
@@ -74,13 +90,23 @@ define(["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbon
 
     var FixtureListView = Backbone.View.extend({
 
+        events: {
+            "click .team1": "onClickTeam",
+            "click .team2": "onClickTeam"
+        },
+
         initialize: function(opts) {
+            opts = opts || {};
+
             this.options = opts;
+
             opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
             this.listenTo(this.model, "change", this.render);
+
+            this.lastClickedTeamId = null;
         },
 
         // Re-render the titles of the todo item.
@@ -101,6 +127,18 @@ define(["jquery", "underscore", "backbone", "TeamIcons"], function($, _, Backbon
             }, this);
 
             return this;
+        },
+
+        onClickTeam: function(evt) {
+            var t = $(evt.target);
+            if (t.is(".team1, .team2")) {
+                var teamId = /(teamid_\w*)/.exec(t.attr("class"))[1];
+                if (this.lastClickedTeamId) {
+                    $("." + this.lastClickedTeamId).removeClass("highlight");
+                }
+                $("." + teamId).addClass("highlight");
+                this.lastClickedTeamId = teamId;
+            }
         }
 
     });

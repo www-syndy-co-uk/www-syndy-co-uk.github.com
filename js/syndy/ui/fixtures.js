@@ -1,5 +1,10 @@
 /*global syndy*/
-define(["jquery", "FixturesService", "FixtureListModel", "FixtureListView"], function ($, FixturesService, FixtureListModel, FixtureListView) {
+define([
+    "jquery",
+    "syndy/fixtures/FixturesService",
+    "syndy/fixtures/FixtureListModel",
+    "syndy/fixtures/FixtureListView"
+], function ($, FixturesService, FixtureListModel, FixtureListView) {
 
 
 var fixturesService = new FixturesService({
@@ -7,7 +12,7 @@ var fixturesService = new FixturesService({
     port: window.location.port
 });
 var model = new FixtureListModel();
-var ui = new FixtureListView({
+var view = new FixtureListView({
     el: $(".rounds")[0],
     model: model,
     $roundTemplate: $("#roundTemplate"),
@@ -108,21 +113,6 @@ function loadFixtures(params) {
 
 // Click team logic.
 function init() {
-    var prevTeamId = null;
-    // Only register one click handler, instead of a click handler per team, per fixture, per round.
-    // So that's one click handler, versus 2*7*27.
-    $(document).click(function (evt) {
-        var t = $(evt.target);
-        if (t.is(".team1, .team2")) {
-            var teamId = /(teamid_\w*)/.exec(t.attr("class"))[1];
-            if (prevTeamId) {
-                $("." + prevTeamId).removeClass("highlight");
-            }
-            $("." + teamId).addClass("highlight");
-            prevTeamId = teamId;
-        }
-    });
-
     $("a.search").click(function (evt) {
         var $selTeam = $("select[name='selTeam']").first();
         var team = $selTeam.val();
