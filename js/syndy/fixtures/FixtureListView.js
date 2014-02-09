@@ -34,7 +34,11 @@ define([
         return teamIcons.getIconUrl(teamName);
     }
 
-    function createRoundElement(roundTpl, fixtureTpl, iconRetriever, roundIdx, round, teams) {
+    function defaultTeamColourCssClassRetriever(teamIcons, teamName) {
+        return teamIcons.getIconClass(teamName);
+    }
+
+    function createRoundElement(roundTpl, fixtureTpl, teamColourCssClassRetriever, roundIdx, round, teams) {
         /**
          * This function will set the data-fixtureIdx attribute on the table
          * row, and any child elements that have a data-fixtureIdx attribute.
@@ -68,8 +72,8 @@ define([
                 team2: team2,
                 team1Id: team1Id,
                 team2Id: team2Id,
-                src1: iconRetriever(team1),
-                src2: iconRetriever(team2),
+                team1ColourCssClass: teamColourCssClassRetriever(team1),
+                team2ColourCssClass: teamColourCssClassRetriever(team2),
                 score1: (fixture.score1 > -1) ? fixture.score1 : "",
                 score2: (fixture.score1 > -1) ? fixture.score2 : "",
                 htScore1: (fixture.score1 > -1) ? "(" + fixture.htScore1 + ")" : "",
@@ -100,7 +104,7 @@ define([
 
             this.options = opts;
 
-            opts.iconRetriever = opts.iconRetriever || _.bind(defaultIconRetriever, null, teamIcons);
+            opts.teamColourCssClassRetriever = opts.teamColourCssClassRetriever || _.bind(defaultTeamColourCssClassRetriever, null, teamIcons);
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
@@ -120,7 +124,7 @@ define([
 
             this.$el.html("");
             _.each(rounds, function(round, idx) {
-                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.iconRetriever, idx, round, teams);
+                var elRound = createRoundElement(this.roundTpl, this.fixtureTpl, opts.teamColourCssClassRetriever, idx, round, teams);
                 if (elRound) {
                     this.$el.append(elRound);
                 }

@@ -138,15 +138,14 @@ function createMatchElement(match) {
     function createBookmakersOddsEl (curBookie) {
         var bet1 = curBookie.bet1 || {};
         var bet2 = curBookie.bet2 || {};
-        var src1 = teamIcons.getIconUrl(bet1.name);
-        var src2 = teamIcons.getIconUrl(bet2.name);
-        var defaultSrc = "http://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif";
+        var team1ColourCssClass = teamIcons.getIconClass(bet1.name);
+        var team2ColourCssClass = teamIcons.getIconClass(bet2.name);
         var ob = {
             bet1: $.extend({}, bet1, {odds: oddsToString(bet1.odds) }),
             bet2: $.extend({}, bet2, {odds: oddsToString(bet2.odds) }),
             draw: { odds: curBookie.draw ? oddsToString(curBookie.draw.odds) : "" },
-            src1: src1 ? src1 : defaultSrc,
-            src2: src2 ? src2 : defaultSrc
+            team1ColourCssClass: team1ColourCssClass ? team1ColourCssClass : "",
+            team2ColourCssClass: team2ColourCssClass ? team2ColourCssClass : ""
         };
         var elBet = $(tmplBet(ob));
         return elBet;
