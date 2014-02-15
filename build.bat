@@ -1,6 +1,6 @@
 @echo off
 
-set r_js_shared_opts=-o baseUrl=js name=main paths.jquery=empty: paths.underscore=empty: paths.backbone=empty: paths.jqueryui=empty:
+set r_js_shared_opts=-o baseUrl=js name=main paths.jquery=empty: paths.underscore=empty: paths.backbone=empty: paths.jqueryui=empty: paths.q=empty:
 
 call r.js.cmd %r_js_shared_opts% out=temp.js optimize=none 
 
