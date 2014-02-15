@@ -22,39 +22,43 @@ function min(minStr, isMin) {
 // We use CDN for common libraries when not in dev mode.
 // This means when we test we don't need internet connection for CDN.
 var paths = !syndy.dev ? {
-    // non-requirejs paths
-    "requirejs": "//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min(),
-    "YUI": "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js",
-
-    // requirejs paths
-    // 1.11.0 because 2.x does not support IE8
-    "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
-    "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
-    "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min"),
-    "jqueryui": "//code.jquery.com/ui/1.10.4/jquery-ui" + min()
+    script: {
+        // non-requirejs paths
+        "requirejs": "//cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require" + min(),
+        "YUI": "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js"
+    },
+    require: {
+        // requirejs paths
+        "domReady": "//cdnjs.cloudflare.com/ajax/libs/require-domReady/2.0.1/domReady" + min(),
+        // 1.11.0 because 2.x does not support IE8
+        "jquery": "//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery" + min(),
+        "underscore": "//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore" + min("-min"),
+        "backbone": "//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone" + min("-min"),
+        "jqueryui": "//code.jquery.com/ui/1.10.4/jquery-ui" + min(),
+        "q": "//cdnjs.cloudflare.com/ajax/libs/q.js/1.0.0/q" + min()
+    }
 } : {
-    // non-requirejs paths
-    "requirejs": syndy.staticRoot + "/js/lib/require" + min(".min"),
-
-    // requirejs paths
-    "jquery": "lib/jquery" + min(".min"),
-    "underscore": "lib/underscore" + min("-min"),
-    "backbone": "lib/backbone" + min("-min")
+    script: {
+        // non-requirejs paths
+        "requirejs": syndy.staticRoot + "/js/lib/require" + min(),
+    },
+    require: {
+        // requirejs paths
+        "domReady": "lib/domReady" + min(),
+        "jquery": "lib/jquery" + min(),
+        "underscore": "lib/underscore" + min("-min"),
+        "backbone": "lib/backbone" + min("-min"),
+        "q": "lib/q" + min()
+    }
 };
 
 function makeRequireConfig() {
     return {
         baseUrl: syndy.staticRoot + "/js",
         YUI: {
-            src: paths.YUI
+            src: paths.script.YUI
         },
-        paths: {
-            // 1.11.0 because 2.x does not support IE8
-            "jquery": paths["jquery"],
-            "underscore": paths["underscore"],
-            "backbone": paths["backbone"],
-            "jqueryui":  paths["jqueryui"]
-        },
+        paths: paths.require,
         shim: {
             underscore: {
                 exports: "_"
@@ -70,7 +74,7 @@ function makeRequireConfig() {
 function importScriptAndCss() {
     try {
         // first and most important, requirejs.
-        writelnScript(paths["requirejs"] + ".js");
+        writelnScript(paths.script["requirejs"] + ".js");
 
         writelnScript(syndy.staticRoot + "/js/CookieManager.js");
 
