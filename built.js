@@ -69,64 +69,231 @@ define('syndy/ui/login-button',["jquery", "LogonService"], function ($, LogonSer
     });
 });
 
-define('OddsService',["jquery"], function (jQuery) {
+define('syndy/odds/Odds',[],function() {
 
-var $ = jQuery;
+    function Odds() {}
 
-/**
- * Makes a jQuery ajax (as JSONP).
- */
-function ajax(url, settings) {
-    url += (url.indexOf("?") > -1) ? "&" : "?";
-    url += "callback=";
-    url += "?";
-    return $.getJSON(url, settings).pipe(function (data) {
-        return ("string" === typeof data) ? JSON.parse(data) : data;
-    });
-}
+    Odds.toString = function(odds) {
+        if (!odds) {
+            return "?";
+        }
+        var f = odds.asFraction;
+        var d = odds.asDouble;
+        if (f) {
+            return "" + f.numerator + "/" + f.denominator;
+        }
+        return d;
+    };
 
-/**
- * The loadXXX methods load data, and returns a jQuery Deferred.
- * This Deferred can be used to attach other event handlers
- * to the Ajax request.
- */
-function OddsService(host, port) {
-    var me = this;
+    Odds.strToFloat = function(s) {
+        var idx = s.indexOf("/");
+        if (idx < 0) {
+            return parseFloat(s);
+        }
+        var num = s.substring(0, idx).trim();
+        var denom = s.substring(idx + 1).trim();
+        return parseInt(num) / parseInt(denom);
+    };
 
-    host = host || "//api.syndy.co.uk";
-    port = port || "";
-    if (port) {
-        host = host + ":" + port;
+    return Odds;
+
+});
+
+define('syndy/ajax',[
+    "jquery",
+    "q"
+], function($, Q) {
+
+    // http://forum.jquery.com/topic/jquery-ajax-with-datatype-jsonp-will-not-use-error-callback-if-request-fails
+
+    /**
+     * Makes a jQuery ajax call (as JSONP).
+     *
+     * We need JSONP as we're cross domain (e.g. www.syndy.co.uk calling api.syndy.co.uk).
+     *
+     * If the JSONP is a success, the data is returned as normal.
+     *
+     * If there is an error (i.e. there is an "errors" field), we decorate the error with the URL,
+     * and throw the error which will trigger the failure callbacks on the returned promise.
+     *
+     * Why can't we use HTTP status codes to send errors? Why do we need to send back an errors object
+     * (with a HTTP 200)?
+     *
+     * Because JSONP and error callbacks don't play well when cross-domain. We NEED a valid JSON
+     * response in order to trigger the callbacks (either success or failure, it doesn't matter).
+     *
+     * @return A Q promise.
+     */
+    function getJSON(url, settings) {
+        url += (url.indexOf("?") > -1) ? "&" : "?";
+        url += "callback=";
+        url += "?";
+        return Q($.getJSON(url, settings)).then(function(data) {
+            data = ("string" === typeof data) ? JSON.parse(data) : data;
+            if (data.errors) {
+                data.url = url;
+                throw data;
+            }
+            return data;
+        });
     }
 
-    this.matches = [];
-    this.match = null;
-    this.matchSummaries = null;
+    return {
+        getJSON: getJSON
+    };
 
-    this.loadMatches = function () {
-        var url = host + "/odds/matches";
-        return ajax(url).done(function (data) {
-            me.matches = data;
+});
+
+define('syndy/promise/utils',[
+    "q"
+], function(Q) {
+
+    /**
+     * Resolves the provided promises, and sends out a progress notification for each.
+     *
+     * @return A Q promise.
+     */
+    function allSettledAndNotify(promises) {
+        function callback(i) {
+            return function(response) {
+                results[i] = response;
+                d.notify({
+                    list: results,
+                    response: response,
+                    i: i,
+                    size: size,
+                    count: (++count)
+                });
+            };
+        }
+
+        var d = Q.defer();
+        var results = [];
+        var size = promises.length;
+        var count = 0;
+        promises = _.map(promises, function(p, i) {
+            // save either success response or error response to the list.
+            var cb = callback(i);
+            return p.then(cb, cb);
+        });
+
+        var resolve = function() {
+            d.resolve(results);
+        };
+
+        Q.allSettled(promises).then(resolve, resolve);
+        return d.promise;
+    }
+
+    return {
+        allSettledAndNotify: allSettledAndNotify
+    };
+
+});
+
+define('syndy/odds/OddsService',[
+    "jquery",
+    "underscore",
+    "q",
+    "syndy/ajax",
+    "syndy/promise/utils"
+], function($, _, Q, ajax, promiseUtils) {
+
+    function trueFilter() {
+        return true;
+    }
+
+    /**
+     * The loadXXX methods load data, and returns a jQuery Deferred.
+     * This Deferred can be used to attach other event handlers
+     * to the Ajax request.
+     */
+    function OddsService(opts) {
+        // make copy
+        opts = _.extend({}, opts);
+        this.opts = opts;
+
+        opts.host = opts.host || "//api.syndy.co.uk";
+        opts.port = opts.port || "";
+
+        if (opts.port) {
+            opts.host = opts.host + ":" + opts.port;
+        }
+    }
+
+    OddsService.prototype.loadMatches = function() {
+        var url = this.opts.host + "/odds/matches";
+        return ajax.getJSON(url).then(function(data) {
+            return {
+                matches: data
+            };
         });
     };
 
-    this.loadMatch = function (matchId) {
-        var url = host + "/odds/matches?matchId=" + matchId;
-        return ajax(url).done(function (data) {
-            me.match = data;
-            me.matches.push(data);
+    OddsService.prototype.loadMatch = function(matchId) {
+        var url = this.opts.host + "/odds/matches?matchId=" + matchId;
+        return ajax.getJSON(url).then(function(data) {
+            return {
+                match: data
+            };
         });
     };
 
-    this.loadMatchSummaries = function () {
-        var url = host + "/odds/matchSummaries";
-        return ajax(url).done(function (data) {
-            me.matchSummaries = data;
+    OddsService.prototype.loadMatchSummaries = function() {
+        var url = this.opts.host + "/odds/matchSummaries";
+        return ajax.getJSON(url).then(function(data) {
+            return {
+                matchSummaries: data
+            };
         });
     };
-}
 
-return OddsService;
+    OddsService.prototype.loadSummariesThenMatches = function(matchFilter) {
+        var self = this;
+
+        matchFilter = matchFilter || trueFilter;
+
+        return this.loadMatchSummaries().then(function(response) {
+            var matchSummaries = _.filter(response.matchSummaries, matchFilter);
+
+            var promises = _.map(matchSummaries, function(matchSummary, i) {
+                return self.loadMatch(matchSummary.id);
+            });
+
+            return promiseUtils.allSettledAndNotify(promises).then(function(list) {
+                return {
+                    matchSummaries: matchSummaries,
+                    matches: list
+                };
+            });
+        });
+    };
+
+    return OddsService;
+
+});
+
+define('syndy/odds/MarketModel',["backbone"], function(Backbone) {
+
+    var MarketModel = Backbone.Model.extend({
+
+        initialize: function() {}
+
+    });
+
+    return MarketModel;
+
+});
+
+define('syndy/odds/OddsListModel',["backbone", "./MarketModel"], function(Backbone, MarketModel) {
+
+    var OddsListModel = Backbone.Collection.extend({
+
+        model: MarketModel
+
+    });
+
+    return OddsListModel;
 
 });
 
@@ -222,177 +389,17 @@ define('TeamIcons',["underscore"], function(_) {
 
 });
 
-define('syndy/ui/latest-odds',["jquery", "underscore", "OddsService", "TeamIcons"], function ($, _, OddsService, TeamIcons) {
+define('syndy/odds/OddsListView',[
+    "jquery",
+    "backbone",
+    "underscore",
+    "./Odds",
+    "TeamIcons"
+], function($, Backbone, _, Odds, TeamIcons) {
 
+    var teamIcons = new TeamIcons();
 
-
-
-
-var oddsService = new OddsService(syndy.apiRoot, window.location.port);
-var teamIcons = new TeamIcons();
-
-
-
-
-
-function loadMatches (matchFilter) {
-    var loadStart = new Date().getTime();
-
-    var $matches = $(".matches").first();
-    $matches.html("");
-
-    $(".loading").show();
-    $(".filter").hide();
-
-    var matchesToLoad = 0;
-    var matchesLoaded = 0;
-
-    function onAllLoadMatchesDone(numMatches) {
-        var loadEnd = new Date().getTime() - loadStart;
-        $(".loadTime").text("Loaded " + numMatches + " markets in " + loadEnd + "ms");
-
-        // Got all the data
-        // Only call when dom:ready
-        //$(function () {
-            $(".loading").hide();
-            $(".filter").show();
-        //});
-
-        dfd.resolve(result);
-    }
-
-    function onLoadMatchDone(data) {
-        var done = (++matchesLoaded === matchesToLoad);
-
-        if (done) {
-            onAllLoadMatchesDone(matchesToLoad);
-        }
-
-        // Got some of the data
-        // Only call when dom:ready
-        //$(function () {
-            var match = data;
-            var elMatch = createMatchElement(match);
-            if (elMatch) {
-                $matches.append(elMatch);
-            }
-        //});
-    }
-
-    var dfd = $.Deferred();
-    var result = {};
-
-    oddsService.loadMatchSummaries().done(function(data, textStatus, jqXHR) {
-        matchesToLoad = 0;
-        result.matchSummaries = data;
-
-        if (data.length < 1) {
-            // No summaries
-            onAllLoadMatchesDone(0);
-            return;
-        }
-
-        for (var i = 0; i < data.length; i++) {
-            var matchSummary = data[i];
-            var include = matchFilter(matchSummary);
-            if (include) {
-                (function(i, div) {
-                    // closure to capture new div
-                    div.html(matchSummary.team1 + " v " + matchSummary.team2);
-                    $matches.append(div);
-                    matchesToLoad++;
-                    oddsService.loadMatch(matchSummary.id).done(function (data) {
-                        result.matches = (result.matches || []);
-                        result.matches[i] = data;
-                        div.remove();
-                        onLoadMatchDone.call(this, data);
-                    });
-                }(i, $("<div/>")));
-            }
-        }
-        if (0 == matchesToLoad) {
-            // Filtered everything out!
-            onAllLoadMatchesDone(0);
-        }
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-        alert(textStatus);
-        console.log(jqXHR, textStatus, errorThrown);
-    });
-
-    return dfd.promise();
-}
-
-// Start the load as soon as possible
-function findFilter () {
-    /**
-     * Should we show the match. Currently implemented as must be a super league team involved.
-     */
-    function superLeagueFilter (matchSummary) {
-        if (teamIcons.getIconUrl(matchSummary.team1) || teamIcons.getIconUrl(matchSummary.team2)) {
-            return true;
-        }
-        return false;
-    }
-
-    var isSuperLeagueOnly = window.location.href.indexOf("superLeagueOnly") > -1;
-    if (isSuperLeagueOnly) {
-        return superLeagueFilter;
-    }
-    return function () { return true; };
-}
-
-
-
-
-
-
-function createMatchElement(match) {
-    function oddsToString (odds) {
-        if (!odds) {
-            return "?";
-        }
-        var f = odds.asFraction;
-        var d = odds.asDouble;
-        if (f) {
-            return "" + f.numerator + "/" + f.denominator;
-        }
-        return d;
-    }
-
-    function createBookmakersOddsEl (curBookie) {
-        var bet1 = curBookie.bet1 || {};
-        var bet2 = curBookie.bet2 || {};
-        var team1ColourCssClass = teamIcons.getIconClass(bet1.name);
-        var team2ColourCssClass = teamIcons.getIconClass(bet2.name);
-        var ob = {
-            bet1: $.extend({}, bet1, {odds: oddsToString(bet1.odds) }),
-            bet2: $.extend({}, bet2, {odds: oddsToString(bet2.odds) }),
-            draw: { odds: curBookie.draw ? oddsToString(curBookie.draw.odds) : "" },
-            team1ColourCssClass: team1ColourCssClass ? team1ColourCssClass : "",
-            team2ColourCssClass: team2ColourCssClass ? team2ColourCssClass : ""
-        };
-        var elBet = $(tmplBet(ob));
-        return elBet;
-    }
-
-    if (!match.bets || match.bets.length < 1) {
-        return null;
-    }
-
-    // MUST use .html().trim() to work in IE
-    var strMatch = $("#matchTemplate").html().trim();
-    var tmplMatch = _.template(strMatch);
-    var elMatch = $(tmplMatch({
-        match: match
-    }));
-
-    // MUST use .html().trim() to work in IE
-    var strBet = $("#betTemplate").html().trim();
-    var tmplBet = _.template(strBet);
-
-    var elBets = elMatch.find(".bets tbody");
-
-    match.bets.sort(function (b1, b2) {
+    function compareByBetBookmaker(b1, b2) {
         if (b1.bookmaker < b2.bookmaker) {
             return -1;
         }
@@ -400,129 +407,299 @@ function createMatchElement(match) {
             return 1;
         }
         return 0;
-    });
-
-    var curBookie = {};
-
-    $(match.bets).each(function (betIdx, bet) {
-        //console.log(betIdx + "," + bet.name + "," + bet.bookmaker);
-        if (bet.handicap && bet.handicap.length > 0 && bet.handicap[0] == "+") {
-            bet.handicap = bet.handicap.substring(1);
-        }
-        if (null != curBookie.bookmaker && bet.bookmaker != curBookie.bookmaker) {
-            var elBet = createBookmakersOddsEl(curBookie);
-            elBets.append(elBet);
-            curBookie = {};
-        }
-        if ("Draw" === bet.name) {
-            curBookie.draw = bet;
-        } else if (match.team1 === bet.name) {
-            curBookie.bet1 = bet;
-        } else {
-            curBookie.bet2 = bet;
-        }
-        curBookie.bookmaker = bet.bookmaker;
-    });
-
-    // Add the last one. Why? Because above we only add a bookie if the bookie changes.
-    // For the last bookie this will never happen.
-    var elBet = createBookmakersOddsEl(curBookie);
-    elBets.append(elBet);
-
-    return elMatch;
-}
-
-
-
-
-function init() {
-    function oddsStrToFloat (s) {
-        var idx = s.indexOf("/");
-        if (idx < 0) {
-            return parseFloat(s);
-        }
-        return parseInt(s.substring(0, idx).trim()) / parseInt(s.substring(idx+1).trim());
     }
 
-    function compareAsOddsDraw (txt1, txt2) {
-        // Remove the [] from around the odds
-        txt1 = txt1.substring(1, txt1.length-1);
-        txt2 = txt2.substring(1, txt2.length-1);
-        if (!txt1) {
-            // may be blank
-            return -1;
-        }
-        if (!txt2) {
-            // may be blank
-            return 1;
-        }
-        return compareAsOdds(txt1, txt2);
-    }
+    function createMatchElement(match, matchTpl) {
 
-    function compareAsOdds (txt1, txt2) {
-        return oddsStrToFloat(txt1) - oddsStrToFloat(txt2);
-    }
-
-    function compareAsText(txt1, txt2) {
-        var same = (txt1 == txt2);
-        return same ? 0 : (txt1 > txt2 ? -1 : 1);
-    }
-
-    function compareAsHandicap(txt1, txt2) {
-        if (txt1.length > 0 && txt1[0] == '+') {
-            txt1 = txt1.substring(1);
-        }
-        if (txt2.length > 0 && txt2[0] == '+') {
-            txt2 = txt2.substring(1);
-        }
-        return parseFloat(txt1) - parseFloat(txt2);
-    }
-
-    // bookmaker, img, odds, handicap, odds, handicap, odds, img
-    var compareFns = [compareAsText, null, compareAsOdds, compareAsHandicap, compareAsOddsDraw, compareAsHandicap, compareAsOdds, null];
-
-    // Only register one click handler, instead of a click handler per cell.
-    $(document).on("click", "tr.bet>td", function (evt) {
-        var td = $(this);
-        //console.log(td);
-
-        var tr = td.parent();
-        //console.log(tr);
-
-        var colIdx = tr.children().index(td);
-        //console.log(colIdx);
-
-        var compareFn = compareFns[colIdx];
-        //console.log(compareFn);
-        if (!compareFn) {
-            return;
+        function createBookmakersOddsEl(curBookie) {
+            var bet1 = curBookie.bet1 || {};
+            var bet2 = curBookie.bet2 || {};
+            var team1ColourCssClass = teamIcons.getIconClass(bet1.name);
+            var team2ColourCssClass = teamIcons.getIconClass(bet2.name);
+            var ob = {
+                // check both bets in case there is only one provided.
+                bookmaker: bet1.bookmaker || bet2.bookmaker,
+                bet1: $.extend({}, bet1, {odds: Odds.toString(bet1.odds) }),
+                bet2: $.extend({}, bet2, {odds: Odds.toString(bet2.odds) }),
+                draw: { odds: curBookie.draw ? Odds.toString(curBookie.draw.odds) : "" },
+                team1ColourCssClass: team1ColourCssClass ? ("sprite " + team1ColourCssClass) : "",
+                team2ColourCssClass: team2ColourCssClass ? ("sprite " + team2ColourCssClass) : ""
+            };
+            var elBet = $(tmplBet(ob));
+            return elBet;
         }
 
-        var tbody = tr.closest("tbody");
-        var trs = tbody.find("tr");
-        var trParent = tr.parent();
-        trs.remove();
-        trs.sort(function (tr1, tr2) {
-            var td1 = $(tr1).children().eq(colIdx);
-            var td2 = $(tr2).children().eq(colIdx);
-            var txt1 = td1.text();
-            var txt2 = td2.text();
-            return compareFn(txt1, txt2);
+        if (!match.bets || match.bets.length < 1) {
+            return null;
+        }
+
+        var elMatch = $(matchTpl({
+            match: match
+        }));
+
+        // MUST use .html().trim() to work in IE
+        var strBet = $("#betTemplate").html().trim();
+        var tmplBet = _.template(strBet);
+
+        var elBets = elMatch.find(".bets tbody");
+
+        match.bets.sort(compareByBetBookmaker);
+
+        var curBookie = {};
+
+        $(match.bets).each(function (betIdx, bet) {
+            //console.log(betIdx + "," + bet.name + "," + bet.bookmaker);
+            if (bet.handicap && bet.handicap.length > 0 && bet.handicap[0] == "+") {
+                bet.handicap = bet.handicap.substring(1);
+            }
+            if (null != curBookie.bookmaker && bet.bookmaker != curBookie.bookmaker) {
+                var elBet = createBookmakersOddsEl(curBookie);
+                elBets.append(elBet);
+                curBookie = {};
+            }
+            if ("Draw" === bet.name) {
+                curBookie.draw = bet;
+            } else if (match.team1 === bet.name) {
+                curBookie.bet1 = bet;
+            } else {
+                curBookie.bet2 = bet;
+            }
+            curBookie.bookmaker = bet.bookmaker;
         });
-        trParent.append(trs);
-    });
-}
 
-return {
-    loadMatches: loadMatches,
-    findFilter: findFilter,
-    init: init
-};
+        // Add the last one. Why? Because above we only add a bookie if the bookie changes.
+        // For the last bookie this will never happen.
+        var elBet = createBookmakersOddsEl(curBookie);
+        elBets.append(elBet);
+
+        return elMatch;
+    }
+
+    var OddsListView = Backbone.View.extend({
+        matchTpl: null,
+
+        initialize: function(opts) {
+            opts = opts || {};
+
+            this.options = opts;
+
+            // MUST use .html().trim() to work in IE
+            this.matchTpl = _.template(opts.$matchTemplate.html().trim());
+
+            this.listenTo(this.model, "change", this.render);
+        },
+
+        render: function() {
+            var data = this.model.attributes;
+
+            this.$el.html("");
+
+            if (data.errors) {
+                this.$el.html(data.url + ", " + data.statusText);
+            } else {
+                this.$el.append(createMatchElement(data.match, this.matchTpl));
+            }
+
+            return this;
+        }
+    });
+
+    OddsListView.createMatchElement = createMatchElement;
+
+    return OddsListView;
+
+});
+
+define('syndy/ui/latest-odds',[
+    "jquery",
+    "underscore",
+    "syndy/odds/Odds",
+    "syndy/odds/OddsService",
+    "syndy/odds/OddsListModel",
+    "syndy/odds/OddsListView",
+    "TeamIcons"
+], function ($, _, Odds, OddsService, OddsListModel, OddsListView, TeamIcons) {
+
+    var comparisonFunctions = {
+        asOddsDraw: function(txt1, txt2) {
+            // Remove the [] from around the odds
+            txt1 = txt1.substring(1, txt1.length-1);
+            txt2 = txt2.substring(1, txt2.length-1);
+            if (!txt1) {
+                // may be blank
+                return -1;
+            }
+            if (!txt2) {
+                // may be blank
+                return 1;
+            }
+            return compareAsOdds(txt1, txt2);
+        },
+
+        asOdds: function(txt1, txt2) {
+            return Odds.strToFloat(txt1) - Odds.strToFloat(txt2);
+        },
+
+        asText: function(txt1, txt2) {
+            var same = (txt1 == txt2);
+            return same ? 0 : (txt1 > txt2 ? -1 : 1);
+        },
+
+        asHandicap: function(txt1, txt2) {
+            if (txt1.length > 0 && txt1[0] == '+') {
+                txt1 = txt1.substring(1);
+            }
+            if (txt2.length > 0 && txt2[0] == '+') {
+                txt2 = txt2.substring(1);
+            }
+            return parseFloat(txt1) - parseFloat(txt2);
+        }
+    };
+
+    var OddsListModel = Backbone.Model.extend({
+    });
+
+
+
+
+
+    var oddsService = new OddsService({
+        host: syndy.apiRoot,
+        port: window.location.port
+    });
+    var teamIcons = new TeamIcons();
+
+    function loadMatches(matchFilter) {
+        if (!matchFilter) {
+            throw new Error("matchFilter is mandatory");
+        }
+
+        var loadStart = new Date().getTime();
+
+        var $matches = $(".matches").first();
+        $matches.html("");
+
+        $(".loading").show();
+        $(".filter").hide();
+
+        var dfd = $.Deferred();
+
+        function onComplete(response) {
+            $(".loading").hide();
+            $(".filter").show();
+
+            var loadEnd = new Date().getTime() - loadStart;
+            $(".loadTime").text("Loaded " + response.matches.length + " markets in " + loadEnd + "ms");
+
+            dfd.resolve(response.matches);
+        }
+
+        oddsService.loadSummariesThenMatches(matchFilter).then(onComplete, onComplete, function(progress) {
+            var loadEnd = new Date().getTime() - loadStart;
+            $(".loading span.status").text("Loaded " + progress.count + " markets in " + loadEnd + "ms");
+
+            var match = progress.response;
+            var model = new OddsListModel(match);
+            var view = new OddsListView({
+                model: model,
+                $matchTemplate: $("#matchTemplate")
+            });
+            view.render();
+            $matches.append(view.$el);
+        });
+
+        return dfd.promise();
+    }
+
+    var matchFilters = {
+        superLeagueOnly: function superLeagueOnlyFilter(matchSummary) {
+            if (teamIcons.getIconUrl(matchSummary.team1) && teamIcons.getIconUrl(matchSummary.team2)) {
+                return true;
+            }
+            return false;
+        },
+        all: function() {
+            return true;
+        }
+    };
+
+    // Start the load as soon as possible
+    function findFilterName(href) {
+        href = href || window.location.href;
+
+        var match = /odds.filter=([^#?&]*)/gi.exec(href);
+
+        return (match && match[0]);
+    }
+
+    function findFilter(name) {
+        return matchFilters[name] || matchFilters.all;
+    }
+
+
+
+
+
+
+    function init() {
+        // bookmaker, img, odds, handicap, odds, handicap, odds, img
+        var compareFns = [
+            comparisonFunctions.compareAsText,
+            null,
+            comparisonFunctions.compareAsOdds, comparisonFunctions.compareAsHandicap,
+            comparisonFunctions.compareAsOddsDraw,
+            comparisonFunctions.compareAsHandicap, comparisonFunctions.compareAsOdds,
+            null];
+
+        // Only register one click handler, instead of a click handler per cell.
+        $(document).on("click", "tr.bet>td", function (evt) {
+            var td = $(this);
+            //console.log(td);
+
+            var tr = td.parent();
+            //console.log(tr);
+
+            var colIdx = tr.children().index(td);
+            //console.log(colIdx);
+
+            var compareFn = compareFns[colIdx];
+            //console.log(compareFn);
+            if (!compareFn) {
+                return;
+            }
+
+            var tbody = tr.closest("tbody");
+            var trs = tbody.find("tr");
+            var trParent = tr.parent();
+            trs.remove();
+            trs.sort(function (tr1, tr2) {
+                var td1 = $(tr1).children().eq(colIdx);
+                var td2 = $(tr2).children().eq(colIdx);
+                var txt1 = td1.text();
+                var txt2 = td2.text();
+                return compareFn(txt1, txt2);
+            });
+            trParent.append(trs);
+        });
+    }
+
+    return {
+        matchFilters: matchFilters,
+        loadMatches: loadMatches,
+        findFilter: findFilter,
+        findFilterName: findFilterName,
+        init: init
+    };
 
 });
 
 /*global window, alert*/
-define('syndy/fixtures/FixturesService',["jquery"], function ($) {
+define('syndy/fixtures/FixturesService',[
+    "jquery",
+    "underscore",
+    "q",
+    "syndy/ajax"
+], function ($, _, Q, ajax) {
 
     function getRoundsFromFixtures(fixtures) {
         var rounds = [];
@@ -584,13 +761,15 @@ define('syndy/fixtures/FixturesService',["jquery"], function ($) {
     }
 
     function FixturesService(opts) {
-        opts = opts || {};
+        // make copy
+        opts = _.extend({}, opts);
         this.opts = opts;
 
         opts.host = opts.host || "//api.syndy.co.uk";
         opts.port = opts.port || "";
         opts.slim = opts.slim || false;
         opts.path = opts.path || (opts.slim ? "/fixtures/slim" : "/fixtures");
+
         if (opts.port) {
             opts.host = opts.host + ":" + opts.port;
         }
@@ -602,19 +781,16 @@ define('syndy/fixtures/FixturesService',["jquery"], function ($) {
      * to the Ajax request.
      */
     FixturesService.prototype.load = function(params) {
-        var self = this;
         var opts = this.opts;
 
         var s = "";
         if (params) {
-            s = ("string" !== typeof params) ? $.param(params) : params;
-            s += "&";
+            s = "?" + ("string" !== typeof params) ? $.param(params) : params;
         }
-        s += "callback=?";
 
-        var url = "" + opts.host + opts.path + "?" + s;
+        var url = "" + opts.host + opts.path + s;
 
-        return $.getJSON(url).then(function(data) {
+        return ajax.getJSON(url).then(function(data) {
             if (!data.errors || data.errors.length < 1) {
                 return handleData(data);
             }
@@ -672,10 +848,14 @@ define('syndy/fixtures/FixtureListView',[
             s = s.substring(0, m.index).trim();
         }
 
+        // Make IE like other browsers, with leading zero for date.
+        s = s.replace(/, ([1-9])/, ", 0$1");
+
         var i = s.indexOf("(");
         if (i > -1) {
             s = s.substring(0, i).trim();
         }
+
         return s;
     }
 
@@ -757,12 +937,12 @@ define('syndy/fixtures/FixtureListView',[
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
+
             this.listenTo(this.model, "change", this.render);
 
             this.lastClickedTeamId = null;
         },
 
-        // Re-render the titles of the todo item.
         render: function() {
             var opts = this.options;
             var data = this.model.attributes;
@@ -815,6 +995,8 @@ define('syndy/fixtures/FixtureListView',[
     FixtureListView.isHome = function(el) {
         return "true" === $(el).attr("data-home");
     };
+
+    FixtureListView.formatKickOff = formatKickOff;
 
     // ----------
     // return
