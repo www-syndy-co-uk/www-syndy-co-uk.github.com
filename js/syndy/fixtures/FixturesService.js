@@ -1,5 +1,10 @@
 /*global window, alert*/
-define(["jquery"], function ($) {
+define([
+    "jquery",
+    "underscore",
+    "q",
+    "syndy/ajax"
+], function ($, _, Q, ajax) {
 
     function getRoundsFromFixtures(fixtures) {
         var rounds = [];
@@ -61,13 +66,15 @@ define(["jquery"], function ($) {
     }
 
     function FixturesService(opts) {
-        opts = opts || {};
+        // make copy
+        opts = _.extend({}, opts);
         this.opts = opts;
 
         opts.host = opts.host || "//api.syndy.co.uk";
         opts.port = opts.port || "";
         opts.slim = opts.slim || false;
         opts.path = opts.path || (opts.slim ? "/fixtures/slim" : "/fixtures");
+
         if (opts.port) {
             opts.host = opts.host + ":" + opts.port;
         }
@@ -79,19 +86,16 @@ define(["jquery"], function ($) {
      * to the Ajax request.
      */
     FixturesService.prototype.load = function(params) {
-        var self = this;
         var opts = this.opts;
 
         var s = "";
         if (params) {
-            s = ("string" !== typeof params) ? $.param(params) : params;
-            s += "&";
+            s = "?" + ("string" !== typeof params) ? $.param(params) : params;
         }
-        s += "callback=?";
 
-        var url = "" + opts.host + opts.path + "?" + s;
+        var url = "" + opts.host + opts.path + s;
 
-        return $.getJSON(url).then(function(data) {
+        return ajax.getJSON(url).then(function(data) {
             if (!data.errors || data.errors.length < 1) {
                 return handleData(data);
             }
