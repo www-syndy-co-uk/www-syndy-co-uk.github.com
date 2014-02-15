@@ -23,10 +23,14 @@ define([
             s = s.substring(0, m.index).trim();
         }
 
+        // Make IE like other browsers, with leading zero for date.
+        s = s.replace(/, ([1-9])/, ", 0$1");
+
         var i = s.indexOf("(");
         if (i > -1) {
             s = s.substring(0, i).trim();
         }
+
         return s;
     }
 
@@ -108,12 +112,12 @@ define([
             // Cache the template function for a single item.
             this.roundTpl = _.template(opts.$roundTemplate.html());
             this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
+
             this.listenTo(this.model, "change", this.render);
 
             this.lastClickedTeamId = null;
         },
 
-        // Re-render the titles of the todo item.
         render: function() {
             var opts = this.options;
             var data = this.model.attributes;
@@ -166,6 +170,8 @@ define([
     FixtureListView.isHome = function(el) {
         return "true" === $(el).attr("data-home");
     };
+
+    FixtureListView.formatKickOff = formatKickOff;
 
     // ----------
     // return
