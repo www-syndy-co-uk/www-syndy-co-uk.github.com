@@ -40,7 +40,7 @@ var paths = !syndy.dev ? {
 } : {
     script: {
         // non-requirejs paths
-        "requirejs": syndy.staticRoot + "/js/lib/require" + min(),
+        "requirejs": syndy.staticRoot + "/js/lib/require" + min()
     },
     require: {
         // requirejs paths
