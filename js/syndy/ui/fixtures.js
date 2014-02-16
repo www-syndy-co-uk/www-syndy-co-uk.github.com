@@ -11,7 +11,10 @@ var fixturesService = new FixturesService({
     host: syndy.apiRoot,
     port: window.location.port
 });
+
 var model = new FixtureListModel();
+model.on("change", onFixturesChanged);
+
 var view = new FixtureListView({
     el: $(".rounds")[0],
     model: model,
@@ -22,6 +25,15 @@ var view = new FixtureListView({
 
 
 
+
+function onFixturesChanged(model, options) {
+    var data = model.attributes;
+    if (!data.error) {
+        initSelTeam(data.teams);
+        initSelMonth();
+        initSelRound(data.rounds.length);
+    }
+}
 
 function initSelRound(size) {
     // TODO - GLOBAL LOOKUP
@@ -80,9 +92,6 @@ function createOnFixturesLoadedHandler(searchLink) {
         $("div.search").show();
         $(".loading").hide();
         searchLink.text(txt);
-        initSelTeam(data.teams);
-        initSelMonth();
-        initSelRound(data.rounds.length);
         model.set(data);
     //});
     };
@@ -104,7 +113,7 @@ function loadFixtures(params) {
     searchLink.text("");
     $(".loading").show();
     $("div.search").hide();
-    return fixturesService.load(params).done(onFixturesLoaded);
+    return fixturesService.load(params).then(onFixturesLoaded, onFixturesLoaded);
 }
 
 
