@@ -40,7 +40,8 @@ var paths = !syndy.dev ? {
 } : {
     script: {
         // non-requirejs paths
-        "requirejs": syndy.staticRoot + "/js/lib/require" + min()
+        "requirejs": syndy.staticRoot + "/js/lib/require" + min(),
+        "YUI": "http://yui.yahooapis.com/3.14.1/build/yui/yui" + min("-min") + ".js"
     },
     require: {
         // requirejs paths
