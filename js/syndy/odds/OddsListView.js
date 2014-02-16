@@ -3,8 +3,9 @@ define([
     "backbone",
     "underscore",
     "./Odds",
+    "../templateUtils",
     "TeamIcons"
-], function($, Backbone, _, Odds, TeamIcons) {
+], function($, Backbone, _, Odds, templateUtils, TeamIcons) {
 
     var teamIcons = new TeamIcons();
 
@@ -54,7 +55,7 @@ define([
         return rows;
     }
 
-    function createMatchElement(match, matchTpl) {
+    function createMatchElement(match, matchTpl, betTpl) {
 
         function extendBet(bet) {
             return _.extend({}, bet, {
@@ -76,7 +77,7 @@ define([
                 team1ColourCssClass: team1ColourCssClass ? ("sprite " + team1ColourCssClass) : "",
                 team2ColourCssClass: team2ColourCssClass ? ("sprite " + team2ColourCssClass) : ""
             };
-            var elBet = $(tmplBet(ob));
+            var elBet = $(betTpl(ob));
             return elBet;
         }
 
@@ -87,10 +88,6 @@ define([
         var elMatch = $(matchTpl({
             match: match
         }));
-
-        // MUST use .html().trim() to work in IE
-        var strBet = $("#betTemplate").html().trim();
-        var tmplBet = _.template(strBet);
 
         var elBets = elMatch.find(".bets tbody");
 
@@ -104,6 +101,7 @@ define([
 
     var OddsListView = Backbone.View.extend({
         matchTpl: null,
+        betTpl: null,
 
         initialize: function(opts) {
             opts = opts || {};
@@ -111,7 +109,8 @@ define([
             this.options = opts;
 
             // MUST use .html().trim() to work in IE
-            this.matchTpl = _.template(opts.$matchTemplate.html().trim());
+            this.matchTpl = templateUtils.compile(opts.$matchTemplate);
+            this.betTpl = templateUtils.compile(opts.$betTemplate);
 
             this.listenTo(this.model, "change", this.render);
         },
@@ -124,7 +123,7 @@ define([
             if (data.error) {
                 this.$el.html(data.url + ", " + data.statusText);
             } else {
-                this.$el.append(createMatchElement(data, this.matchTpl));
+                this.$el.append(createMatchElement(data, this.matchTpl, this.betTpl));
             }
 
             return this;

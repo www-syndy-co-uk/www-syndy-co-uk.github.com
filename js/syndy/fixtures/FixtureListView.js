@@ -3,8 +3,9 @@ define([
     "jquery",
     "underscore",
     "backbone",
+    "../templateUtils",
     "TeamIcons"
-], function($, _, Backbone, TeamIcons) {
+], function($, _, Backbone, templateUtils, TeamIcons) {
 
     var teamIcons = new TeamIcons();
 
@@ -112,16 +113,22 @@ define([
             this.options = opts;
 
             opts.teamColourCssClassRetriever = opts.teamColourCssClassRetriever || _.bind(defaultTeamColourCssClassRetriever, null, teamIcons);
+
             // Cache the template function for a single item.
-            this.roundTpl = _.template(opts.$roundTemplate.html());
-            this.fixtureTpl = _.template(opts.$fixtureTemplate.html());
+            this.roundTpl = templateUtils.compile(opts.$roundTemplate);
+            this.fixtureTpl = templateUtils.compile(opts.$fixtureTemplate);
 
             this.listenTo(this.model, "change", this.render);
 
             this.lastClickedTeamId = null;
         },
 
-        render: function() {
+        renderError: function() {
+            var data = this.model.attributes;
+            this.$el.html(JSON.stringify(data.error));
+        },
+
+        renderSuccess: function() {
             var opts = this.options;
             var data = this.model.attributes;
 
@@ -138,6 +145,16 @@ define([
             }, this);
 
             return this;
+        },
+
+        render: function() {
+            var opts = this.options;
+            var data = this.model.attributes;
+            if (data.error) {
+                return this.renderError();
+            } else {
+                return this.renderSuccess();
+            }
         },
 
         onClickTeam: function(evt) {
