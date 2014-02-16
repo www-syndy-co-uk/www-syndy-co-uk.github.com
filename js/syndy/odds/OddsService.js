@@ -30,29 +30,17 @@ define([
 
     OddsService.prototype.loadMatches = function() {
         var url = this.opts.host + "/odds/matches";
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                matches: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadMatch = function(matchId) {
         var url = this.opts.host + "/odds/matches?matchId=" + matchId;
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                match: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadMatchSummaries = function() {
         var url = this.opts.host + "/odds/matchSummaries";
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                matchSummaries: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadSummariesThenMatches = function(matchFilter) {
@@ -61,7 +49,7 @@ define([
         matchFilter = matchFilter || trueFilter;
 
         return this.loadMatchSummaries().then(function(response) {
-            var matchSummaries = _.filter(response.matchSummaries, matchFilter);
+            var matchSummaries = _.filter(response, matchFilter);
 
             var promises = _.map(matchSummaries, function(matchSummary, i) {
                 return self.loadMatch(matchSummary.id);

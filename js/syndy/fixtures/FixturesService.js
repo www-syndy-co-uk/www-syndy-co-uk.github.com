@@ -81,9 +81,7 @@ define([
     }
 
     /**
-     * Loads the fixture data, and returns a jQuery Deferred.
-     * This Deferred can be used to attach other event handlers
-     * to the Ajax request.
+     * Loads the fixture data, and returns a Q promise.
      */
     FixturesService.prototype.load = function(params) {
         var opts = this.opts;
@@ -96,16 +94,10 @@ define([
         var url = "" + opts.host + opts.path + s;
 
         return ajax.getJSON(url).then(function(data) {
-            if (!data.errors || data.errors.length < 1) {
+            if (!data.error) {
                 return handleData(data);
             }
             return data;
-        }, function(response, status, xhr) {
-            if (status !== "error") {
-                return;
-            }
-            var arr = [url].concat(Array.prototype.slice.call(arguments));
-            alert(arr.join("\n"));
         });
     };
 

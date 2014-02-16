@@ -29,7 +29,7 @@ define([
         url += "?";
         return Q($.getJSON(url, settings)).then(function(data) {
             data = ("string" === typeof data) ? JSON.parse(data) : data;
-            if (data.errors) {
+            if (data.error) {
                 data.url = url;
                 throw data;
             }
