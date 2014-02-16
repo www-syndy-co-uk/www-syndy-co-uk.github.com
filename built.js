@@ -75,17 +75,23 @@ define('syndy/odds/Odds',[],function() {
 
     Odds.toString = function(odds) {
         if (!odds) {
-            return "?";
+            throw new Error("Cannot format " + odds + " as odds.");
         }
         var f = odds.asFraction;
         var d = odds.asDouble;
-        if (f) {
+        if (f && "number" === typeof f.numerator && "number" === typeof f.denominator) {
             return "" + f.numerator + "/" + f.denominator;
         }
-        return d;
+        if ("number" === typeof d) {
+            return "" + d;
+        }
+        throw new Error("Cannot format " + odds + " as odds.");
     };
 
     Odds.strToFloat = function(s) {
+        if (!s || "string" !== typeof s) {
+            throw new Error("Cannot convert " + s + " to float.");
+        }
         var idx = s.indexOf("/");
         if (idx < 0) {
             return parseFloat(s);
@@ -93,6 +99,15 @@ define('syndy/odds/Odds',[],function() {
         var num = s.substring(0, idx).trim();
         var denom = s.substring(idx + 1).trim();
         return parseInt(num) / parseInt(denom);
+    };
+
+    Odds.fractional = function(numerator, denominator) {
+        return {
+            asFraction: {
+                numerator: numerator,
+                denominator: denominator
+            }
+        };
     };
 
     return Odds;
@@ -130,7 +145,7 @@ define('syndy/ajax',[
         url += "?";
         return Q($.getJSON(url, settings)).then(function(data) {
             data = ("string" === typeof data) ? JSON.parse(data) : data;
-            if (data.errors) {
+            if (data.error) {
                 data.url = url;
                 throw data;
             }
@@ -223,29 +238,17 @@ define('syndy/odds/OddsService',[
 
     OddsService.prototype.loadMatches = function() {
         var url = this.opts.host + "/odds/matches";
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                matches: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadMatch = function(matchId) {
         var url = this.opts.host + "/odds/matches?matchId=" + matchId;
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                match: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadMatchSummaries = function() {
         var url = this.opts.host + "/odds/matchSummaries";
-        return ajax.getJSON(url).then(function(data) {
-            return {
-                matchSummaries: data
-            };
-        });
+        return ajax.getJSON(url);
     };
 
     OddsService.prototype.loadSummariesThenMatches = function(matchFilter) {
@@ -254,7 +257,7 @@ define('syndy/odds/OddsService',[
         matchFilter = matchFilter || trueFilter;
 
         return this.loadMatchSummaries().then(function(response) {
-            var matchSummaries = _.filter(response.matchSummaries, matchFilter);
+            var matchSummaries = _.filter(response, matchFilter);
 
             var promises = _.map(matchSummaries, function(matchSummary, i) {
                 return self.loadMatch(matchSummary.id);
@@ -409,7 +412,49 @@ define('syndy/odds/OddsListView',[
         return 0;
     }
 
+    /**
+     * Ties up the team1 and team2 bet options to a single row per bookmaker.
+     */
+    function createBetRows(match) {
+        match.bets.sort(compareByBetBookmaker);
+
+        var curBookie = {};
+
+        var rows = [];
+
+        _.forEach(match.bets, function(bet) {
+            //console.log(betIdx + "," + bet.name + "," + bet.bookmaker);
+            if (bet.handicap && bet.handicap.length > 0 && bet.handicap[0] == "+") {
+                bet.handicap = bet.handicap.substring(1);
+            }
+            if (null != curBookie.bookmaker && bet.bookmaker != curBookie.bookmaker) {
+                rows.push(curBookie);
+                curBookie = {};
+            }
+            if ("Draw" === bet.name) {
+                curBookie.draw = bet;
+            } else if (match.team1 === bet.name) {
+                curBookie.bet1 = bet;
+            } else {
+                curBookie.bet2 = bet;
+            }
+            curBookie.bookmaker = bet.bookmaker;
+        });
+
+        // Add the last one. Why? Because above we only add a bookie if the bookie changes.
+        // For the last bookie this will never happen.
+        rows.push(curBookie);
+
+        return rows;
+    }
+
     function createMatchElement(match, matchTpl) {
+
+        function extendBet(bet) {
+            return _.extend({}, bet, {
+                odds: ("undefined" !== typeof bet.odds) ? Odds.toString(bet.odds) : ""
+            });
+        }
 
         function createBookmakersOddsEl(curBookie) {
             var bet1 = curBookie.bet1 || {};
@@ -419,8 +464,8 @@ define('syndy/odds/OddsListView',[
             var ob = {
                 // check both bets in case there is only one provided.
                 bookmaker: bet1.bookmaker || bet2.bookmaker,
-                bet1: $.extend({}, bet1, {odds: Odds.toString(bet1.odds) }),
-                bet2: $.extend({}, bet2, {odds: Odds.toString(bet2.odds) }),
+                bet1: extendBet(bet1),
+                bet2: extendBet(bet2),
                 draw: { odds: curBookie.draw ? Odds.toString(curBookie.draw.odds) : "" },
                 team1ColourCssClass: team1ColourCssClass ? ("sprite " + team1ColourCssClass) : "",
                 team2ColourCssClass: team2ColourCssClass ? ("sprite " + team2ColourCssClass) : ""
@@ -443,34 +488,10 @@ define('syndy/odds/OddsListView',[
 
         var elBets = elMatch.find(".bets tbody");
 
-        match.bets.sort(compareByBetBookmaker);
-
-        var curBookie = {};
-
-        $(match.bets).each(function (betIdx, bet) {
-            //console.log(betIdx + "," + bet.name + "," + bet.bookmaker);
-            if (bet.handicap && bet.handicap.length > 0 && bet.handicap[0] == "+") {
-                bet.handicap = bet.handicap.substring(1);
-            }
-            if (null != curBookie.bookmaker && bet.bookmaker != curBookie.bookmaker) {
-                var elBet = createBookmakersOddsEl(curBookie);
-                elBets.append(elBet);
-                curBookie = {};
-            }
-            if ("Draw" === bet.name) {
-                curBookie.draw = bet;
-            } else if (match.team1 === bet.name) {
-                curBookie.bet1 = bet;
-            } else {
-                curBookie.bet2 = bet;
-            }
-            curBookie.bookmaker = bet.bookmaker;
+        _.forEach(createBetRows(match), function(row) {
+            var elBet = createBookmakersOddsEl(row);
+            elBets.append(elBet);
         });
-
-        // Add the last one. Why? Because above we only add a bookie if the bookie changes.
-        // For the last bookie this will never happen.
-        var elBet = createBookmakersOddsEl(curBookie);
-        elBets.append(elBet);
 
         return elMatch;
     }
@@ -494,10 +515,10 @@ define('syndy/odds/OddsListView',[
 
             this.$el.html("");
 
-            if (data.errors) {
+            if (data.error) {
                 this.$el.html(data.url + ", " + data.statusText);
             } else {
-                this.$el.append(createMatchElement(data.match, this.matchTpl));
+                this.$el.append(createMatchElement(data, this.matchTpl));
             }
 
             return this;
@@ -505,6 +526,7 @@ define('syndy/odds/OddsListView',[
     });
 
     OddsListView.createMatchElement = createMatchElement;
+    OddsListView.createBetRows = createBetRows;
 
     return OddsListView;
 
@@ -776,9 +798,7 @@ define('syndy/fixtures/FixturesService',[
     }
 
     /**
-     * Loads the fixture data, and returns a jQuery Deferred.
-     * This Deferred can be used to attach other event handlers
-     * to the Ajax request.
+     * Loads the fixture data, and returns a Q promise.
      */
     FixturesService.prototype.load = function(params) {
         var opts = this.opts;
@@ -791,16 +811,10 @@ define('syndy/fixtures/FixturesService',[
         var url = "" + opts.host + opts.path + s;
 
         return ajax.getJSON(url).then(function(data) {
-            if (!data.errors || data.errors.length < 1) {
+            if (!data.error) {
                 return handleData(data);
             }
             return data;
-        }, function(response, status, xhr) {
-            if (status !== "error") {
-                return;
-            }
-            var arr = [url].concat(Array.prototype.slice.call(arguments));
-            alert(arr.join("\n"));
         });
     };
 
@@ -849,7 +863,10 @@ define('syndy/fixtures/FixtureListView',[
         }
 
         // Make IE like other browsers, with leading zero for date.
-        s = s.replace(/, ([1-9])/, ", 0$1");
+        m = s.match(/[0-9]+/);
+        if (m && m[0].length < 2) {
+            s = s.substring(0, m.index) + "0" + s.substring(m.index);
+        }
 
         var i = s.indexOf("(");
         if (i > -1) {
