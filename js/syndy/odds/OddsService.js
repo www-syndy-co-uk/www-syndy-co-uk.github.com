@@ -43,7 +43,7 @@ define([
         return ajax.getJSON(url);
     };
 
-    OddsService.prototype.loadSummariesThenMatches = function(matchFilter) {
+    OddsService.prototype.loadSummariesAndMatches = function(matchFilter) {
         var self = this;
 
         matchFilter = matchFilter || trueFilter;

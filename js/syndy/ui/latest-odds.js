@@ -82,7 +82,7 @@ define([
             dfd.resolve(response.matches);
         }
 
-        oddsService.loadSummariesThenMatches(matchFilter).then(onComplete, onComplete, function(progress) {
+        oddsService.loadSummariesAndMatches(matchFilter).then(onComplete, onComplete, function(progress) {
             var loadEnd = new Date().getTime() - loadStart;
             $(".loading span.status").text("Loaded " + progress.count + " markets in " + loadEnd + "ms");
 
@@ -90,7 +90,8 @@ define([
             var model = new OddsListModel(match);
             var view = new OddsListView({
                 model: model,
-                $matchTemplate: $("#matchTemplate")
+                $matchTemplate: $("#matchTemplate"),
+                $betTemplate: $("#betTemplate")
             });
             view.render();
             $matches.append(view.$el);
