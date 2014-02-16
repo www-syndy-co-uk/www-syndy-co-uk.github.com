@@ -24,7 +24,10 @@ define([
         }
 
         // Make IE like other browsers, with leading zero for date.
-        s = s.replace(/, ([1-9])/, ", 0$1");
+        m = s.match(/[0-9]+/);
+        if (m && m[0].length < 2) {
+            s = s.substring(0, m.index) + "0" + s.substring(m.index);
+        }
 
         var i = s.indexOf("(");
         if (i > -1) {
