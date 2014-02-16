@@ -88,16 +88,14 @@ define([
 
         var s = "";
         if (params) {
-            s = "?" + ("string" !== typeof params) ? $.param(params) : params;
+            s = ("string" !== typeof params) ? $.param(params) : params
+            s = "?" + s;
         }
 
         var url = "" + opts.host + opts.path + s;
 
         return ajax.getJSON(url).then(function(data) {
-            if (!data.error) {
-                return handleData(data);
-            }
-            return data;
+            return handleData(data);
         });
     };
 
