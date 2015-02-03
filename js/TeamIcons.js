@@ -3,7 +3,7 @@ define(["underscore"], function(_) {
     var aliases = {
         "Bradford Bulls": ["Bradford"],
         "Castleford Tigers": ["Castleford"],
-        "Catalan Dragons": ["Catalans", "Catalan Dragons"],
+        "Catalan Dragons": ["Catalans", "Catalans Dragons"],
         "Huddersfield Giants": ["Huddersfield"],
         "Hull FC": ["Hull"],
         "Hull Kingston Rovers": ["Hull K R", "Hull KR"],
